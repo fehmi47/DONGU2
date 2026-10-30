@@ -12,19 +12,17 @@
   <!-- NAVBAR -->
   <header class="navbar">
     <div class="nav-container">
-      <a href="#" class="brand" onclick="switchView('home')">
+      <a href="#" class="brand" onclick="handleBrandClick(); return false;">
         <span class="brand-leaf">🌿</span>
         <span>DÖNGÜ</span>
       </a>
 
       <!-- Giriş yapıldığında açılan üst menü (Varsayılan: gizli) -->
       <ul class="nav-links" id="mainNavLinks" style="display: none;">
-        <li><a class="nav-link" data-view="home">🏠 Ana Sayfa</a></li>
         <li><a class="nav-link" data-view="dashboard">📊 Dashboard</a></li>
         <li><a class="nav-link" data-view="pantry">🥬 Mutfağım</a></li>
         <li><a class="nav-link" data-view="recipes">🍲 Tariflerim</a></li>
         <li><a class="nav-link" data-view="impact">📈 Etki Paneli</a></li>
-        <li><a class="nav-link" data-view="notifications">🔔 Bildirimler</a></li>
       </ul>
 
       <div class="nav-user">
@@ -33,6 +31,7 @@
           🔔
           <span class="notif-badge" id="navNotifBadge" style="display: none;">0</span>
         </button>
+
 
         <!-- Giriş Yapılmadığında: Hızlı Giriş Butonları -->
         <div id="navGuestBox" style="display: flex; align-items: center; gap: 0.5rem;">

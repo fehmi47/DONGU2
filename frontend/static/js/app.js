@@ -235,6 +235,15 @@ function scrollToAuth(tab = "login") {
   }
 }
 
+function handleBrandClick() {
+  if (state.currentUser) {
+    switchView("dashboard");
+  } else {
+    switchView("home");
+  }
+}
+
+
 
 // Yardımcı Fonksiyon: Toast Bildirimi Göster
 function showToast(message, type = "success") {
@@ -305,6 +314,16 @@ function switchView(viewName) {
     }
   });
 
+  // Bildirim butonunun aktiflik durumunu güncelle
+  const notifBtn = document.getElementById("navNotifBtn");
+  if (notifBtn) {
+    if (viewName === "notifications") {
+      notifBtn.classList.add("active");
+    } else {
+      notifBtn.classList.remove("active");
+    }
+  }
+
   // Sayfa bölümlerini güncelle
   document.querySelectorAll(".view-section").forEach(sec => {
     if (sec.id === `view-${viewName}`) {
@@ -313,6 +332,7 @@ function switchView(viewName) {
       sec.classList.remove("active");
     }
   });
+
 
   // İlgili görünümün verilerini yükle
   if (viewName === "home") updateAuthUI();

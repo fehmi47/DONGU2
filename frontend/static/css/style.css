@@ -143,9 +143,11 @@ body {
   transition: background 0.2s;
 }
 
-.notif-btn:hover {
+.notif-btn:hover,
+.notif-btn.active {
   background: var(--primary-surface);
 }
+
 
 .notif-badge {
   position: absolute;
