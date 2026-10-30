@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DÖNGÜ — Yeşil Gelecek Akıllı Gıda Yönetimi</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand" onclick="switchView('dashboard')">
+        <span class="brand-leaf">🌿</span>
+        <span>DÖNGÜ</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a class="nav-link active" data-view="dashboard">📊 Dashboard</a></li>
+        <li><a class="nav-link" data-view="pantry">🥬 Mutfağım</a></li>
+        <li><a class="nav-link" data-view="recipes">🍲 Tarifler</a></li>
+        <li><a class="nav-link" data-view="impact">📈 Etki Paneli</a></li>
+        <li><a class="nav-link" data-view="notifications">🔔 Bildirimler</a></li>
+      </ul>
+
+      <div class="nav-user">
+        <!-- Bildirim Kısayolu -->
+        <button class="notif-btn" onclick="switchView('notifications')" title="Bildirimler">
+          🔔
+          <span class="notif-badge" id="navNotifBadge" style="display: none;">0</span>
+        </button>
+
+        <!-- Kullanıcı İzolasyonu Seçicisi -->
+        <div class="user-badge">
+          <span>👤</span>
+          <select id="userSelector" onchange="switchUser(this.value)" style="border: none; background: transparent; font-size: 0.85rem; font-weight: 600; cursor: pointer; outline: none;">
+            <option value="1">Kullanıcı 1 (Demo)</option>
+            <option value="2">Kullanıcı 2 (Test)</option>
+            <option value="3">Kullanıcı 3 (Ayşe)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="main-content">
+
+    <!-- ====================================================================== -->
+    <!-- 1. DASHBOARD BÖLÜMÜ -->
+    <!-- ====================================================================== -->
+    <section id="view-dashboard" class="view-section active">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">🌿 Sürdürülebilir Mutfak Özeti</h1>
+          <p class="section-subtitle">Gıdalarınızı zamanında değerlendirin, israfı önleyin ve gezegeni koruyun.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addProductModal')">+ Yeni Ürün Ekle</button>
+      </div>
+
+      <!-- Metrik Sayaçları -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon green">🥬</div>
+          <div>
+            <div class="metric-label">Aktif Ürünler</div>
+            <div class="metric-value" id="dashActiveProducts">0</div>
+            <div class="metric-sub">Kiler & Buzdolabı</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon orange">⏰</div>
+          <div>
+            <div class="metric-label">Tarihi Yaklaşan</div>
+            <div class="metric-value" id="dashExpiring">0</div>
+            <div class="metric-sub">0-3 gün kalan gıdalar</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon red">🚨</div>
+          <div>
+            <div class="metric-label">Kritik Acil</div>
+            <div class="metric-value" id="dashCritical">0</div>
+            <div class="metric-sub">Öncelikli tüketilmeli</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon green">⚖️</div>
+          <div>
+            <div class="metric-label">Kurtarılan Gıda</div>
+            <div class="metric-value" id="dashTotalSaved">0.0 kg</div>
+            <div class="metric-sub">İsraftan önlendi</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon blue">🍲</div>
+          <div>
+            <div class="metric-label">Tamamlanan Tarif</div>
+            <div class="metric-value" id="dashCompletedRecipes">0</div>
+            <div class="metric-sub">Ev yemeği pişirildi</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Çevresel Etki & Haftalık Trend -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Haftalık Grafik -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-title">
+            <span>📅 Haftalık Gıda Değerlendirme Trendi</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Son 7 günde fiilen tüketilen gıda miktarı (kg)</p>
+          <div class="chart-container" id="weeklyChart">
+            <!-- Dinamik Barlar -->
+          </div>
+        </div>
+
+        <!-- Çevresel Fayda Paneli -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-title">
+            <span>🌍 Tahmini Çevresel Kazanım</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            Tükettiğiniz gıdalar sayesinde önlenen karbon salınımı ve su israfı.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="background: var(--primary-surface); padding: 1.25rem; border-radius: var(--radius-md); text-align: center;">
+              <div style="font-size: 2rem;">☁️</div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-dark);" id="dashCo2Saved">0 kg</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Önlenen CO2 Salınımı</div>
+            </div>
+
+            <div style="background: var(--info-surface); padding: 1.25rem; border-radius: var(--radius-md); text-align: center;">
+              <div style="font-size: 2rem;">💧</div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--info);" id="dashWaterSaved">0 L</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Kurtarılan Su Miktarı</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1.25rem; font-size: 0.78rem; color: var(--text-light); text-align: center;">
+            * Değerler küresel gıda yaşam döngüsü ortalamalarına göre hesaplanan tahmini göstergelerdir.
+          </div>
+        </div>
+      </div>
+
+      <!-- Son Tüketim İşlemleri -->
+      <div class="card">
+        <div class="card-title">
+          <span>🕒 Son Tüketim ve Gıda Kurtarma İşlemleri</span>
+          <button class="btn btn-sm btn-outline-primary" onclick="switchView('impact')">Tümünü Gör</button>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Ürün</th>
+                <th>Miktar</th>
+                <th>İşlem Türü</th>
+                <th>İlgili Tarif</th>
+              </tr>
+            </thead>
+            <tbody id="recentLogsTableBody">
+              <!-- Dinamik satırlar -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================== -->
+    <!-- 2. MUTFAĞIM (PANTRY) BÖLÜMÜ -->
+    <!-- ====================================================================== -->
+    <section id="view-pantry" class="view-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">🥬 Mutfağım & Kiler Takibi</h1>
+          <p class="section-subtitle">Gıdalarınızın son tüketim tarihlerini ve aciliyet durumlarını takip edin.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addProductModal')">+ Yeni Ürün Ekle</button>
+      </div>
+
+      <!-- Filtre Çubuğu -->
+      <div class="filter-bar">
+        <input type="text" id="searchPantry" class="search-input" placeholder="🔍 Ürün adına göre ara...">
+        
+        <select id="filterCategory" class="filter-select">
+          <option value="">Tüm Kategoriler</option>
+        </select>
+
+        <select id="filterStorage" class="filter-select">
+          <option value="">Tüm Saklama Alanları</option>
+          <option value="fridge">Buzdolabı</option>
+          <option value="freezer">Dondurucu</option>
+          <option value="pantry">Kiler</option>
+        </select>
+      </div>
+
+      <!-- Ürün Tablosu -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ürün Adı</th>
+                <th>Miktar</th>
+                <th>Saklama Yeri</th>
+                <th>Tarih Türü & Tarih</th>
+                <th>Kalan Süre</th>
+                <th>Öncelik Durumu</th>
+                <th>İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="pantryTableBody">
+              <!-- Dinamik Ürün Satırları -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================== -->
+    <!-- 3. TARİFLER BÖLÜMÜ -->
+    <!-- ====================================================================== -->
+    <section id="view-recipes" class="view-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">🍲 Akıllı Tarif Eşleştirme Motoru</h1>
+          <p class="section-subtitle">Kilerinizdeki öncelikli ve tarihi yaklaşan gıdaları değerlendiren en uygun tarifler.</p>
+        </div>
+      </div>
+
+      <div class="recipes-grid" id="recipesGrid">
+        <!-- Dinamik Tarif Kartları -->
+      </div>
+    </section>
+
+    <!-- ====================================================================== -->
+    <!-- 4. ETKİ PANELİ BÖLÜMÜ -->
+    <!-- ====================================================================== -->
+    <section id="view-impact" class="view-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">📈 Gıda İsrafı Etki Paneli</h1>
+          <p class="section-subtitle">Yalnızca fiilen tükettiğiniz ve kurtardığınız gıdaların doğrulanmış etki raporu.</p>
+        </div>
+      </div>
+
+      <!-- İstatistik Sayaçları -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon green">⚖️</div>
+          <div>
+            <div class="metric-label">Toplam Değerlendirilen</div>
+            <div class="metric-value" id="impactTotalKg">0.0 kg</div>
+            <div class="metric-sub">Gerçek tüketimler</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon blue">📅</div>
+          <div>
+            <div class="metric-label">Son 7 Gün</div>
+            <div class="metric-value" id="impactWeeklyKg">0.0 kg</div>
+            <div class="metric-sub">Haftalık kurtarma</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon orange">🗓️</div>
+          <div>
+            <div class="metric-label">Son 30 Gün</div>
+            <div class="metric-value" id="impactMonthlyKg">0.0 kg</div>
+            <div class="metric-sub">Aylık kurtarma</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon green">🍲</div>
+          <div>
+            <div class="metric-label">Tamamlanan Tarif</div>
+            <div class="metric-value" id="impactCompletedRecipes">0</div>
+            <div class="metric-sub">Evde hazırlanan</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kategori Dağılımı ve Geçmiş -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        <div class="card">
+          <div class="card-title">Kategori Bazında Kurtarılan Gıda</div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kategori</th>
+                  <th>Toplam Miktar (kg)</th>
+                  <th>İşlem Sayısı</th>
+                </tr>
+              </thead>
+              <tbody id="impactCategoryTableBody">
+                <!-- Dinamik satırlar -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Çevresel Tasarruf Metrikleri</div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+            İsraf edilmeden tüketilen her kilogram gıda, atmosferi ve tatlı su kaynaklarını korur.
+          </p>
+
+          <div style="padding: 1.25rem; background: var(--primary-surface); border-radius: var(--radius-md); margin-bottom: 1rem;">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Önlenen Sera Gazı Emisyonu:</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--primary-dark);" id="impactCo2Saved">0 kg CO2</div>
+          </div>
+
+          <div style="padding: 1.25rem; background: var(--info-surface); border-radius: var(--radius-md);">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Tasarruf Edilen Su Ayak İzi:</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--info);" id="impactWaterSaved">0 Litre</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================== -->
+    <!-- 5. BİLDİRİMLER BÖLÜMÜ -->
+    <!-- ====================================================================== -->
+    <section id="view-notifications" class="view-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title">🔔 Akıllı Bildirimler ve Uyarılar</h1>
+          <p class="section-subtitle">Tarihi yaklaşan veya kritik seviyedeki gıdalar için uyarılar.</p>
+        </div>
+        <button class="btn btn-secondary" onclick="markAllReadHandler()">Tümünü Okundu İşaretle</button>
+      </div>
+
+      <div id="notificationsList">
+        <!-- Dinamik Bildirim Kartları -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================== -->
+  <!-- MODALLAR -->
+  <!-- ====================================================================== -->
+
+  <!-- 1. YENİ ÜRÜN EKLE MODALI -->
+  <div class="modal-overlay" id="addProductModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>+ Kilerime Yeni Ürün Ekle</h3>
+        <button class="modal-close" onclick="closeModal('addProductModal')">&times;</button>
+      </div>
+      <form id="addProductForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Ürün Adı *</label>
+            <input type="text" id="newProdName" class="form-control" placeholder="Örn: Salkım Domates, Süt, Kıyma" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Miktar *</label>
+              <input type="number" id="newProdQuantity" class="form-control" step="0.1" min="0.1" placeholder="1.0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Birim *</label>
+              <select id="newProdUnit" class="form-control" required>
+                <option value="adet">adet</option>
+                <option value="kg">kg</option>
+                <option value="gram">gram</option>
+                <option value="litre">litre</option>
+                <option value="ml">ml</option>
+                <option value="paket">paket</option>
+                <option value="demet">demet</option>
+                <option value="kaşık">kaşık</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kategori *</label>
+              <select id="newProdCategory" class="form-control" required>
+                <!-- Dinamik Kategoriler -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Saklama Yeri *</label>
+              <select id="newProdStorage" class="form-control" required>
+                <option value="fridge">Buzdolabı</option>
+                <option value="freezer">Dondurucu</option>
+                <option value="pantry">Kiler</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tarih Türü *</label>
+              <select id="newProdDateType" class="form-control" onchange="document.getElementById('newProdExpiry').required = (this.value !== 'NONE')">
+                <option value="STT">STT (Son Tüketim Tarihi)</option>
+                <option value="TETT">TETT (Tavsiye Edilen Tarih)</option>
+                <option value="NONE">Tarihsiz (NONE)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Son Tarih</label>
+              <input type="date" id="newProdExpiry" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('addProductModal')">İptal</button>
+          <button type="submit" class="btn btn-primary">Kaydet & Ekle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. TÜKETİM KAYDI MODALI -->
+  <div class="modal-overlay" id="consumeModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>🍽️ Gıda Tüketimi Kaydet</h3>
+        <button class="modal-close" onclick="closeModal('consumeModal')">&times;</button>
+      </div>
+      <form id="consumeProductForm">
+        <div class="modal-body">
+          <p style="margin-bottom: 1rem; color: var(--text-muted);">
+            Ürün: <strong id="consumeProdName" style="color: var(--primary-dark);"></strong><br>
+            Mevcut Miktar: <span id="consumeAvailableQty" style="font-weight: 600;"></span>
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Tüketilen Miktar</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="number" id="consumeQuantityInput" class="form-control" step="0.1" min="0.1" required>
+              <span id="consumeUnitLabel" style="font-weight: 600; color: var(--text-muted);"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">İşlem Türü</label>
+            <select id="consumeActionType" class="form-control">
+              <option value="consumed">🍽️ Doğrudan Tüketildi (Değerlendirildi)</option>
+              <option value="recipe_used">🍲 Yemek Tarifinde Kullanıldı</option>
+              <option value="discarded">🗑️ Bozuldu / Atıldı (İsraf)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('consumeModal')">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Tüketimi Onayla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. TARİF DETAY VE PİŞİRME MODALI -->
+  <div class="modal-overlay" id="recipeDetailModal">
+    <div class="modal-box" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 id="recipeModalTitle">Tarif Başlığı</h3>
+        <button class="modal-close" onclick="closeModal('recipeDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="recipeModalDesc" style="color: var(--text-muted); margin-bottom: 1.25rem;"></p>
+
+        <h4 style="font-size: 1rem; color: var(--primary-dark); margin-bottom: 0.6rem;">📋 Malzemeler ve Kiler Durumu</h4>
+        <ul id="recipeModalIngredients" style="list-style: none; margin-bottom: 1.5rem;">
+          <!-- Dinamik Malzemeler -->
+        </ul>
+
+        <h4 style="font-size: 1rem; color: var(--primary-dark); margin-bottom: 0.6rem;">👨‍🍳 Hazırlanış Adımları</h4>
+        <div id="recipeModalInstructions" style="line-height: 1.6; font-size: 0.92rem; color: var(--text-main); background: #f8fafc; padding: 1rem; border-radius: var(--radius-md);">
+          <!-- Dinamik Adımlar -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('recipeDetailModal')">Kapat</button>
+        <button type="button" class="btn btn-primary" onclick="cookRecipeHandler()">🍲 Bu Tarifi Pişirdim (Stoktan Düş)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST BİLDİRİM KONTEYNERİ -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- SCRIPTS -->
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

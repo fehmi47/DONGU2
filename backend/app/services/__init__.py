@@ -29,6 +29,21 @@ from app.services.recipe_service import (
     get_recipe_ingredients,
 )
 from app.services.recipe_matcher import match_user_products_with_recipes
+from app.services.consumption_service import (
+    record_consumption,
+    get_user_consumptions,
+    get_consumption_by_id,
+    calculate_consumption_summary,
+    convert_to_kg,
+)
+from app.services.notification_service import (
+    check_and_generate_notifications,
+    get_user_notifications,
+    get_notification_by_id,
+    mark_notification_as_read,
+    mark_all_notifications_as_read,
+)
+from app.services.dashboard_service import get_dashboard_summary
 
 __all__ = [
     "seed_categories",
@@ -54,4 +69,15 @@ __all__ = [
     "delete_recipe",
     "get_recipe_ingredients",
     "match_user_products_with_recipes",
+    "record_consumption",
+    "get_user_consumptions",
+    "get_consumption_by_id",
+    "calculate_consumption_summary",
+    "convert_to_kg",
+    "check_and_generate_notifications",
+    "get_user_notifications",
+    "get_notification_by_id",
+    "mark_notification_as_read",
+    "mark_all_notifications_as_read",
+    "get_dashboard_summary",
 ]

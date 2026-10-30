@@ -19,8 +19,15 @@ from app.schemas.recipe import (
     MissingIngredientInfo,
     RecipeRecommendationResponse,
 )
-from app.schemas.consumption import ConsumptionCreate, ConsumptionResponse
+from app.schemas.consumption import (
+    ConsumptionCreate,
+    ConsumptionResponse,
+    CategoryConsumptionSummary,
+    EnvironmentalImpactSummary,
+    ConsumptionSummaryResponse,
+)
 from app.schemas.notification import NotificationBase, NotificationCreate, NotificationResponse
+from app.schemas.dashboard import DashboardSummaryResponse, WeeklyStatItem
 
 __all__ = [
     "UserBase",
@@ -46,7 +53,12 @@ __all__ = [
     "RecipeRecommendationResponse",
     "ConsumptionCreate",
     "ConsumptionResponse",
+    "CategoryConsumptionSummary",
+    "EnvironmentalImpactSummary",
+    "ConsumptionSummaryResponse",
     "NotificationBase",
     "NotificationCreate",
     "NotificationResponse",
+    "DashboardSummaryResponse",
+    "WeeklyStatItem",
 ]

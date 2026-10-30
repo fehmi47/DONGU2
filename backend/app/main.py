@@ -1,11 +1,29 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from app.database import init_db, SessionLocal
 from app.services.category_service import seed_categories
 from app.data.seed_recipes import seed_recipes
+
+# API Router'ları
 from app.routers.products import router as products_router
 from app.routers.categories import router as categories_router
 from app.routers.recipes import router as recipes_router
+from app.routers.consumption import router as consumption_router
+from app.routers.notifications import router as notifications_router
+from app.routers.dashboard import router as dashboard_router
+
+# Dizin yollarını belirleme
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = os.path.dirname(APP_DIR)
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
+STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
+TEMPLATES_DIR = os.path.join(FRONTEND_DIR, "templates")
+INDEX_HTML = os.path.join(TEMPLATES_DIR, "index.html")
 
 
 @asynccontextmanager
@@ -36,6 +54,8 @@ app = FastAPI(
     * **Ürün Yönetimi:** Kiler, buzdolabı ve dondurucudaki gıdaların STT/TETT takibi ve miktarsal yönetimi.
     * **Akıllı Öncelik Sistemi:** Son tüketim tarihi yaklaşan gıdaları tespit etme ve güvenlik sınıflandırması.
     * **Tarif Yönetimi & Akıllı Eşleştirme:** Eldeki malzemelerle yapılabilecek tarifleri önceliklendirerek gıda israfını önleme.
+    * **Tüketim ve Etki Takibi:** Gerçek gıda tüketimlerini kaydetme, karbon ve su ayak izi tasarrufunu ölçme.
+    * **Bildirimler:** Yaklaşan tüketim tarihleri ve acil değerlendirilmesi gereken ürün uyarıları.
     * **Veri Güvenliği ve İzolasyonu:** Her kullanıcı yalnızca kendi mutfağındaki ürünlere erişebilir.
     """,
     version="1.0.0",
@@ -44,10 +64,47 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Router'ları uygulamaya dahil etme
+# Statik dosyaları (/static) bağlama
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# API Router'larını uygulamaya dahil etme
 app.include_router(products_router)
 app.include_router(categories_router)
 app.include_router(recipes_router)
+app.include_router(consumption_router)
+app.include_router(notifications_router)
+app.include_router(dashboard_router)
+
+
+# ==============================================================================
+# FRONTEND SAYFA ROTALARI
+# ==============================================================================
+
+@app.get("/", tags=["Arayüz"], summary="Ana Sayfa (Dashboard)")
+def serve_home():
+    """DÖNGÜ tek sayfa arayüzünü (SPA) döner."""
+    return FileResponse(INDEX_HTML)
+
+
+@app.get("/pantry", tags=["Arayüz"], summary="Mutfağım Sayfası")
+def serve_pantry():
+    return FileResponse(INDEX_HTML)
+
+
+@app.get("/recipes-view", tags=["Arayüz"], summary="Tarifler Sayfası")
+def serve_recipes():
+    return FileResponse(INDEX_HTML)
+
+
+@app.get("/impact", tags=["Arayüz"], summary="Etki Paneli Sayfası")
+def serve_impact():
+    return FileResponse(INDEX_HTML)
+
+
+@app.get("/notifications-view", tags=["Arayüz"], summary="Bildirimler Sayfası")
+def serve_notifications():
+    return FileResponse(INDEX_HTML)
 
 
 @app.get("/health", tags=["Sistem"])
