@@ -43,7 +43,8 @@ class Product(Base):
         CheckConstraint("quantity >= 0", name="chk_product_quantity_non_negative"),
         CheckConstraint("date_type IN ('STT', 'TETT', 'NONE')", name="chk_product_date_type"),
         CheckConstraint("storage_location IN ('fridge', 'freezer', 'pantry')", name="chk_product_storage_location"),
-        CheckConstraint("status IN ('active', 'consumed', 'discarded')", name="chk_product_status"),
+        CheckConstraint("status IN ('active', 'consumed', 'discarded', 'ACTIVE', 'CONSUMED', 'DISCARDED')", name="chk_product_status"),
+
         Index("idx_product_user_status", "user_id", "status"),
         Index("idx_product_user_category", "user_id", "category_id"),
     )

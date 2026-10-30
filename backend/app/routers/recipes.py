@@ -2,7 +2,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, get_async_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.recipe import (
     RecipeCreate,
@@ -11,6 +12,11 @@ from app.schemas.recipe import (
     RecipeIngredientResponse,
     RecipeRecommendationResponse,
 )
+from app.schemas.smart_deduction import (
+    RecipeDeductionRequest,
+    RecipeDeductionResponse,
+)
+from app.services.smart_deduction_service import process_recipe_deduction
 from app.services.recipe_service import (
     get_recipes,
     get_recipe_by_id,
@@ -23,6 +29,7 @@ from app.services.recipe_matcher import match_user_products_with_recipes
 from app.routers.deps import get_current_user
 
 router = APIRouter(prefix="/api/recipes", tags=["Tarif Yönetimi ve Akıllı Eşleştirme"])
+
 
 
 @router.get(
@@ -64,9 +71,36 @@ def get_recipe_recommendations(
     return match_user_products_with_recipes(db, user_id=current_user.id)
 
 
+@router.post(
+    "/smart-deduction",
+    response_model=RecipeDeductionResponse,
+    summary="Yapay Zekâlı Şef Ajan Tarif Onayı ve Akıllı Stok Düşümü",
+    description="Şef Ajan'dan gelen tarif onayında belirtilen malzemeleri adet-gram/kg dönüşümleriyle ve ACID transaction bütünlüğünde stoktan düşer."
+)
+async def smart_deduct_recipe(
+    request: RecipeDeductionRequest,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Şef Ajan'ın tarif onayı sonrası (Smart Deduction):
+    - Gelen 'adet' talepleri ortalama ağırlık tablosuna göre gram veya kg cinsine çevrilir.
+    - Stok 'adet' ama talep 'gr' ise ters dönüşüm yapılır.
+    - Kalan miktar tolerans sınırına (<= 0.005) ulaştığında ürün 'CONSUMED' yapılır.
+    - Tüm işlem tek bir async transaction (ACID) içinde çalışır.
+    """
+    return await process_recipe_deduction(
+        db=db,
+        user_id=current_user.id,
+        ingredients=[item.model_dump() for item in request.ingredients],
+        recipe_id=request.recipe_id,
+    )
+
+
 # ==============================================================================
 # TARİF CRUD ENDPOINT'LERİ
 # ==============================================================================
+
 
 @router.post(
     "",

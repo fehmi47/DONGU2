@@ -30,17 +30,49 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# Asenkron Motor ve Oturum Yönetimi (AsyncSession)
+from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+if DATABASE_URL.startswith("sqlite:///"):
+    ASYNC_DATABASE_URL = DATABASE_URL.replace("sqlite:///", "sqlite+aiosqlite:///")
+elif DATABASE_URL.startswith("postgresql://"):
+    ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+else:
+    ASYNC_DATABASE_URL = DATABASE_URL
+
+async_engine = create_async_engine(
+    ASYNC_DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in ASYNC_DATABASE_URL else {}
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+)
+
 
 def get_db():
     """
-    FastAPI endpoint'leri için veritabanı oturumu sağlayan bağımlılık (dependency) fonksiyonu.
-    İşlem tamamlandığında veya hata oluştuğunda oturumu güvenli bir şekilde kapatır.
+    FastAPI endpoint'leri için senkron veritabanı oturumu sağlayan bağımlılık fonksiyonu.
     """
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    FastAPI asenkron endpoint'leri için AsyncSession sağlayan bağımlılık fonksiyonu.
+    """
+    async with AsyncSessionLocal() as session:
+        yield session
+
 
 
 def init_db():
