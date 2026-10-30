@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -18,6 +20,7 @@ from app.routers.consumption import router as consumption_router
 from app.routers.notifications import router as notifications_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.auth import router as auth_router
+from app.routers.chat import router as chat_router
 
 
 # Dizin yollarını belirleme
@@ -82,6 +85,7 @@ app.include_router(recipes_router)
 app.include_router(consumption_router)
 app.include_router(notifications_router)
 app.include_router(dashboard_router)
+app.include_router(chat_router)
 
 
 

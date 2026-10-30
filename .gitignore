@@ -17,6 +17,10 @@ venv/
 .coverage
 htmlcov/
 
+# Environment
+.env
+.env.local
+
 # Antigravity & IDE
 .vscode/
 .idea/
