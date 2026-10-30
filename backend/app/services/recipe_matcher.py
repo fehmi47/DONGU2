@@ -81,11 +81,12 @@ def check_quantity_sufficiency(
     prod_qty: Decimal,
     prod_unit: str,
     req_qty: Decimal,
-    req_unit: str
+    req_unit: str,
+    ingredient_name: str = "",
 ) -> bool:
     """
     Kilerdeki ürün miktarının tarifte istenen miktarı karşılayıp karşılamadığını
-    birim dönüşümlerini dikkate alarak hesaplar.
+    akıllı birim dönüşümlerini (kaşık, bardak, adet, kg, gr vb.) dikkate alarak hesaplar.
     """
     p_unit_clean = prod_unit.strip().lower()
     r_unit_clean = req_unit.strip().lower()
@@ -94,20 +95,18 @@ def check_quantity_sufficiency(
     if p_unit_clean == r_unit_clean:
         return prod_qty >= req_qty
 
-    # Birim dönüşüm tablosunda varsa
-    if p_unit_clean in UNIT_CONVERSIONS and r_unit_clean in UNIT_CONVERSIONS:
-        p_type, p_factor = UNIT_CONVERSIONS[p_unit_clean]
-        r_type, r_factor = UNIT_CONVERSIONS[r_unit_clean]
-
-        # Aynı türdeyse (ör: gram ve kilogram veya litre ve ml)
-        if p_type == r_type:
-            prod_base = prod_qty * p_factor
-            req_base = req_qty * r_factor
-            return prod_base >= req_base
-
-    # Farklı türler arası (ör: 1 adet domates <-> 250 gram domates)
-    # Elde ürün mevcut olduğundan esnek tolerans gösterilir
-    return prod_qty > 0
+    from app.services.unit_converter import convert_unit
+    try:
+        needed_in_prod_unit = convert_unit(
+            quantity=req_qty,
+            from_unit=req_unit,
+            to_unit=prod_unit,
+            item_name=ingredient_name,
+        )
+        TOLERANCE = Decimal("0.005")
+        return (Decimal(str(prod_qty)) + TOLERANCE) >= needed_in_prod_unit
+    except Exception:
+        return Decimal(str(prod_qty)) > 0
 
 
 def match_user_products_with_recipes(
@@ -179,7 +178,8 @@ def match_user_products_with_recipes(
                     prod_qty=prod.quantity,
                     prod_unit=prod.unit,
                     req_qty=ing.quantity,
-                    req_unit=ing.unit
+                    req_unit=ing.unit,
+                    ingredient_name=ing.ingredient_name,
                 )
 
                 if not is_sufficient and not ing.is_optional:

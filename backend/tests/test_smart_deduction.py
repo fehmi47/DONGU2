@@ -290,3 +290,87 @@ async def test_deduction_with_uuid_user_id(async_test_session: AsyncSession):
     )
     assert response.success is True
     assert response.deductions[0].remaining_stock == Decimal("4.00")
+
+
+@pytest.mark.anyio
+async def test_spoon_to_kg_deduction_rice_flour_butter(async_test_session: AsyncSession):
+    """
+    3 kaşık pirinç (3 * 20g = 60g = 0.06 kg), 1 kaşık un (15g = 0.015 kg)
+    ve 1 kaşık tereyağı (15g = 0.015 kg) kg cinsindeki stoktan hatasız düşülür.
+    Kesinlikle 3 kaşık 3 kilo olarak hesaplanmaz!
+    """
+    pirinc = Product(
+        id=20,
+        user_id=1,
+        category_id=1,
+        name="Baldo Pirinç",
+        quantity=Decimal("1.00"),
+        unit="kg",
+        status="active"
+    )
+    un = Product(
+        id=21,
+        user_id=1,
+        category_id=1,
+        name="Buğday Unu",
+        quantity=Decimal("2.00"),
+        unit="kg",
+        status="active"
+    )
+    tereyagi = Product(
+        id=22,
+        user_id=1,
+        category_id=1,
+        name="Köy Tereyağı",
+        quantity=Decimal("2.00"),
+        unit="kg",
+        status="active"
+    )
+    async_test_session.add_all([pirinc, un, tereyagi])
+    await async_test_session.commit()
+
+    ingredients = [
+        {"name": "Baldo Pirinç", "quantity": 3, "unit": "kaşık"},
+        {"name": "Buğday Unu", "quantity": 1, "unit": "kaşık"},
+        {"name": "Köy Tereyağı", "quantity": 1, "unit": "kaşık"},
+    ]
+
+    response = await process_recipe_deduction(
+        db=async_test_session,
+        user_id=1,
+        ingredients=ingredients,
+    )
+
+    assert response.success is True
+    assert len(response.deductions) == 3
+
+    # Pirinç: 1.00 kg - 0.06 kg = 0.94 kg
+    ded_pirinc = response.deductions[0]
+    assert ded_pirinc.deducted_quantity == Decimal("0.06")
+    assert ded_pirinc.remaining_stock == Decimal("0.94")
+
+    # Un: 2.00 kg - 0.015 kg -> 0.02 kg (quantized) = 1.98 kg
+    ded_un = response.deductions[1]
+    assert ded_un.remaining_stock < Decimal("2.00")
+    assert ded_un.remaining_stock > Decimal("1.97")
+
+    # Tereyağı: 2.00 kg - 0.015 kg -> 0.02 kg (quantized) = 1.98 kg
+    ded_tereyagi = response.deductions[2]
+    assert ded_tereyagi.remaining_stock < Decimal("2.00")
+    assert ded_tereyagi.remaining_stock > Decimal("1.97")
+
+
+@pytest.mark.anyio
+async def test_cup_and_bunch_conversions(async_test_session: AsyncSession):
+    """Su bardağı ve demet gibi mutfak ölçüleri doğru gram/kg katsayılarıyla dönüştürülür."""
+    from app.services.unit_converter import convert_unit
+
+    # 1 su bardağı pirinç -> gr
+    assert convert_unit(1, "bardak", "gr", "Pirinç") == Decimal("180")
+    # 2 su bardağı un -> kg
+    assert convert_unit(2, "bardak", "kg", "Un") == Decimal("0.26")
+    # 1 demet maydanoz -> kg
+    assert convert_unit(1, "demet", "kg", "Maydanoz") == Decimal("0.10")
+    # 2 kaşık zeytinyağı -> litre
+    assert convert_unit(2, "kaşık", "l", "Zeytinyağı") == Decimal("0.03")
+

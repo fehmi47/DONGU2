@@ -730,21 +730,29 @@ async function cookRecipeHandler() {
   }
 
   try {
-    let successCount = 0;
-    for (const m of matched) {
-      await api.recordConsumption({
+    const payload = {
+      recipe_id: state.selectedRecipe.id,
+      ingredients: matched.map(m => ({
         product_id: m.product_id,
-        quantity_used: m.required_quantity,
+        name: m.ingredient_name,
+        quantity: m.required_quantity,
         unit: m.required_unit,
-        action_type: "recipe_used",
-        recipe_id: state.selectedRecipe.id,
-      });
-      successCount++;
+      }))
+    };
+
+    const res = await api.smartDeductRecipe(payload);
+    const count = res.deductions ? res.deductions.length : matched.length;
+
+    let consumedMsg = "";
+    if (res.consumed_products && res.consumed_products.length > 0) {
+      consumedMsg = ` (${res.consumed_products.join(", ")} tamamen bitti ve tüketildi)`;
     }
 
-    showToast(`Harika! ${state.selectedRecipe.name} başarıyla pişirildi ve ${successCount} malzeme kilerden düşüldü! 🌿`);
+    showToast(`Harika! "${state.selectedRecipe.name}" başarıyla pişirildi ve ${count} malzeme kilerden düşüldü!${consumedMsg} 🌿`);
     closeModal("recipeDetailModal");
     loadRecipes();
+    if (typeof loadPantry === "function") loadPantry();
+    if (typeof loadDashboard === "function") loadDashboard();
   } catch (err) {
     showToast("Tarif tüketimi sırasında hata: " + err.message, "error");
   }

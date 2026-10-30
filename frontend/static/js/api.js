@@ -153,6 +153,13 @@ class ApiService {
     return this.request("/recipes/recommendations");
   }
 
+  async smartDeductRecipe(deductionData) {
+    return this.request("/recipes/smart-deduction", {
+      method: "POST",
+      body: JSON.stringify(deductionData),
+    });
+  }
+
   // --- TÜKETİM (CONSUMPTION) ---
   async recordConsumption(consumptionData) {
     return this.request("/consumption", {

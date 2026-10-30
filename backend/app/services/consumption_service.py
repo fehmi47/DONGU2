@@ -23,29 +23,11 @@ def convert_to_kg(quantity: Decimal, unit: str) -> Decimal:
     Farklı gıda birimlerini toplam istatistik ve çevresel analiz için
     yaklaşık kilogram (kg) cinsine dönüştürür.
     """
-    u = unit.strip().lower()
-    qty = Decimal(str(quantity))
-
-    if u in ("kg", "kilogram"):
-        return qty
-    elif u in ("gram", "g"):
-        return qty / Decimal("1000")
-    elif u in ("litre", "l"):
-        return qty  # Sıvı gıdalarda 1L ~ 1kg kabul edilir
-    elif u in ("ml", "mililitre"):
-        return qty / Decimal("1000")
-    elif u in ("adet", "tane"):
-        # Ortalama bir meyve/sebze/yumurta yaklaşık 150 gramdır
-        return qty * Decimal("0.15")
-    elif u in ("kaşık", "yemek kaşığı"):
-        return qty * Decimal("0.015")
-    elif u in ("paket", "kutu"):
-        return qty * Decimal("0.40")
-    elif u in ("demet",):
-        return qty * Decimal("0.10")
-    else:
-        # Bilinmeyen birimlerde varsayılan tolerans
-        return qty * Decimal("0.10")
+    from app.services.unit_converter import convert_unit
+    try:
+        return convert_unit(quantity=quantity, from_unit=unit, to_unit="kg")
+    except Exception:
+        return Decimal(str(quantity)) * Decimal("0.10")
 
 
 def record_consumption(

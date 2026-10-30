@@ -180,31 +180,44 @@ def consume_product(
     if not product:
         raise ProductNotFoundError("Ürün bulunamadı veya bu kullanıcıya ait değil.")
 
-    quantity_used = Decimal(str(consumption_in.quantity_used))
+    quantity_used_input = Decimal(str(consumption_in.quantity_used))
 
-    if quantity_used <= 0:
+    if quantity_used_input <= 0:
         raise ValueError("Tüketim miktarı sıfırdan büyük olmalıdır.")
 
-    if product.quantity < quantity_used:
-        raise InsufficientQuantityError(
-            f"Yetersiz ürün miktarı! Mevcut: {product.quantity} {product.unit}, İstenen: {quantity_used} {product.unit}"
-        )
+    # Mutfak ölçü birimi dönüşümü (ör: kaşık -> kg, gram -> kg, adet -> gr)
+    from app.services.unit_converter import convert_unit
+    deduction_in_stock_unit = convert_unit(
+        quantity=quantity_used_input,
+        from_unit=consumption_in.unit,
+        to_unit=product.unit,
+        item_name=product.name,
+    )
+
+    TOLERANCE = Decimal("0.005")
+    if product.quantity < deduction_in_stock_unit:
+        if (deduction_in_stock_unit - product.quantity) > TOLERANCE:
+            raise InsufficientQuantityError(
+                f"Yetersiz ürün miktarı! Mevcut: {product.quantity} {product.unit}, "
+                f"İstenen: {deduction_in_stock_unit.quantize(Decimal('0.01'))} {product.unit} "
+                f"({consumption_in.quantity_used} {consumption_in.unit})"
+            )
 
     try:
         # Miktar düşümü
-        new_quantity = product.quantity - quantity_used
-        product.quantity = new_quantity
-
-        # Ürün tamamen bittiyse durumunu güncelle
-        if new_quantity == 0:
+        new_quantity = product.quantity - deduction_in_stock_unit
+        if new_quantity <= TOLERANCE:
+            product.quantity = Decimal("0.00")
             product.status = "consumed"
+        else:
+            product.quantity = new_quantity.quantize(Decimal("0.01"))
 
         # Tüketim günlüğü kaydı oluştur
         log = ConsumptionLog(
             product_id=product.id,
             recipe_id=consumption_in.recipe_id,
-            quantity_used=quantity_used,
-            unit=consumption_in.unit,
+            quantity_used=deduction_in_stock_unit.quantize(Decimal("0.01")),
+            unit=product.unit,
             action_type=consumption_in.action_type,
         )
         db.add(log)

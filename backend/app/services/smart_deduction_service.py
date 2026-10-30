@@ -15,75 +15,21 @@ from app.schemas.smart_deduction import (
     RecipeDeductionResponse,
 )
 
-# Statik ortalama birim ağırlık sözlüğü (Gram cinsinden)
-AVERAGE_UNIT_WEIGHTS_GR: Dict[str, int] = {
-    # Sebzeler
-    "domates": 150,
-    "soğan": 120,
-    "sogan": 120,
-    "patates": 200,
-    "limon": 100,
-    "yumurta": 50,
-    "sarımsak": 5,
-    "sarimsak": 5,
-    "biber": 40,
-    "yeşil biber": 30,
-    "yesil biber": 30,
-    "kapya biber": 70,
-    "havuç": 100,
-    "havuc": 100,
-    "salatalık": 120,
-    "salatalik": 120,
-    "patlıcan": 200,
-    "patlican": 200,
-    "kabak": 250,
-    "mantar": 20,
-    "avokado": 170,
+from app.services.unit_converter import (
+    AVERAGE_PIECE_WEIGHTS_GR,
+    get_piece_weight_gr,
+    get_spoon_weight_gr,
+    get_cup_weight_gr,
+    convert_unit,
+    normalize_string,
+    normalize_unit,
+)
 
-    # Meyveler
-    "elma": 180,
-    "armut": 180,
-    "muz": 150,
-    "portakal": 200,
-    "mandalina": 80,
-    "şeftali": 150,
-    "seftali": 150,
-
-    # Unlu & Temel Gıdalar
-    "ekmek": 250,
-    "yufka": 150,
-    "simit": 100,
-}
+# Geriye dönük uyumluluk için statik ortalama birim ağırlık sözlüğü (Gram cinsinden)
+AVERAGE_UNIT_WEIGHTS_GR: Dict[str, int] = AVERAGE_PIECE_WEIGHTS_GR
 
 # Tolerans sabiti (0 veya bu değerin altı tam 0 kabul edilip CONSUMED yapılır)
 TOLERANCE: Decimal = Decimal("0.005")
-
-
-def normalize_string(text: str) -> str:
-    """Metni küçük harfe ve Türkçe karakter eşleniklerine göre normalize eder."""
-    t = text.strip().lower()
-    mapping = {
-        "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u"
-    }
-    for tr, en in mapping.items():
-        t = t.replace(tr, en)
-    return t
-
-
-def normalize_unit(unit_str: str) -> str:
-    """Birim adını standart formata normalize eder (adet, gr, kg, l, ml)."""
-    u = unit_str.strip().lower()
-    if u in ["adet", "tane", "ad.", "ad", "piece", "pieces"]:
-        return "adet"
-    if u in ["g", "gr", "gram", "grams"]:
-        return "gr"
-    if u in ["kg", "kilo", "kilogram", "kilograms"]:
-        return "kg"
-    if u in ["ml", "mililitre", "milliliter"]:
-        return "ml"
-    if u in ["l", "lt", "litre", "liter"]:
-        return "l"
-    return u
 
 
 def get_unit_weight_gr(ingredient_name: str) -> Optional[int]:
@@ -91,23 +37,7 @@ def get_unit_weight_gr(ingredient_name: str) -> Optional[int]:
     Malzeme adına göre AVERAGE_UNIT_WEIGHTS_GR tablosundan ağırlığı bulur.
     Birebir eşleşme, Türkçe normalize eşleşme ve alt kelime eşleşmelerini destekler.
     """
-    raw_lower = ingredient_name.strip().lower()
-    if raw_lower in AVERAGE_UNIT_WEIGHTS_GR:
-        return AVERAGE_UNIT_WEIGHTS_GR[raw_lower]
-
-    norm = normalize_string(ingredient_name)
-    # Normalize edilmiş sözlükle kontrol
-    for key, weight in AVERAGE_UNIT_WEIGHTS_GR.items():
-        if normalize_string(key) == norm:
-            return weight
-
-    # Alt dize araması (Örn: "kuru soğan" -> "soğan", "salkım domates" -> "domates")
-    for key, weight in AVERAGE_UNIT_WEIGHTS_GR.items():
-        key_norm = normalize_string(key)
-        if key_norm in norm or norm in key_norm:
-            return weight
-
-    return None
+    return get_piece_weight_gr(ingredient_name)
 
 
 def calculate_converted_deduction(
@@ -120,67 +50,25 @@ def calculate_converted_deduction(
     Gelen malzeme talebini stok birimine çevirir.
     
     Senaryolar:
-    - Talep 'adet', stok 'kg' veya 'gr' -> Sözlükten adet grama, gerekirse kg'a çevrilir.
-    - Talep 'gr' veya 'kg', stok 'adet' -> Sözlükten ters dönüşümle gram adede çevrilir.
-    - Metrik dönüşümler (gr <-> kg, ml <-> l)
+    - Kaşık (yemek kaşığı, tatlı kaşığı, çay kaşığı) <-> kg, gr, ml, l
+    - Bardak (su bardağı, çay bardağı, fincan) <-> kg, gr, ml, l
+    - Adet <-> kg, gr (AVERAGE_PIECE_WEIGHTS_GR ve mutfak standartları)
+    - Demet, Dilim, Paket, Kutu, Kavanoz, Porsiyon <-> kg, gr
+    - Metrik kütle ve hacim dönüşümleri (gr <-> kg, ml <-> l)
     - Aynı birimler doğrudan döndürülür.
     """
-    req_u = normalize_unit(requested_unit)
-    st_u = normalize_unit(stock_unit)
-
-    # 1. Aynı birim
-    if req_u == st_u:
-        return requested_qty
-
-    # 2. Metrik kütle dönüşümleri (gr <-> kg)
-    if req_u == "gr" and st_u == "kg":
-        return requested_qty / Decimal("1000")
-    if req_u == "kg" and st_u == "gr":
-        return requested_qty * Decimal("1000")
-
-    # 3. Metrik hacim dönüşümleri (ml <-> l)
-    if req_u == "ml" and st_u == "l":
-        return requested_qty / Decimal("1000")
-    if req_u == "l" and st_u == "ml":
-        return requested_qty * Decimal("1000")
-
-    # 4. Adet -> Ağırlık (gr veya kg)
-    if req_u == "adet" and st_u in ["gr", "kg"]:
-        weight_gr = get_unit_weight_gr(ingredient_name)
-        if weight_gr is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"'{ingredient_name}' malzemesi için ortalama birim ağırlık "
-                    f"(AVERAGE_UNIT_WEIGHTS_GR) bulunamadı. Lütfen gram cinsinden talep edin."
-                ),
-            )
-        total_gr = requested_qty * Decimal(str(weight_gr))
-        if st_u == "gr":
-            return total_gr
-        else:  # kg
-            return total_gr / Decimal("1000")
-
-    # 5. Ağırlık (gr veya kg) -> Adet (Ters Dönüşüm)
-    if req_u in ["gr", "kg"] and st_u == "adet":
-        weight_gr = get_unit_weight_gr(ingredient_name)
-        if weight_gr is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"'{ingredient_name}' malzemesi için ortalama birim ağırlık "
-                    f"(AVERAGE_UNIT_WEIGHTS_GR) bulunamadı. Lütfen adet cinsinden talep edin."
-                ),
-            )
-        total_req_gr = requested_qty * Decimal("1000") if req_u == "kg" else requested_qty
-        needed_adet = total_req_gr / Decimal(str(weight_gr))
-        return needed_adet
-
-    # Uyuşmayan birimler
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=f"'{ingredient_name}' için birim dönüşümü desteklenmiyor: {requested_unit} -> {stock_unit}",
-    )
+    try:
+        return convert_unit(
+            quantity=requested_qty,
+            from_unit=requested_unit,
+            to_unit=stock_unit,
+            item_name=ingredient_name,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"'{ingredient_name}' için birim dönüşümü desteklenmiyor: {requested_unit} -> {stock_unit} ({str(e)})",
+        )
 
 
 def resolve_user_id(user_id: Union[UUID, str, int]) -> int:
