@@ -382,6 +382,10 @@ async function getLocalAssistantFallback(rawMessage) {
 // Çift gönderimi ve mükerrer istekleri engellemek için kilit bayrağı
 let isSending = false;
 
+// Sayfa düzeyinde konuşma geçmişi (Backend stateless olduğu için frontend tutar)
+// Her istekte son 10 tur (user/assistant) backend'e iletilir
+let sohbetGecmisi = [];
+
 /**
  * Kullanıcının mesajını POST /api/chat uç noktasına gönderir ve yanıtı ekrana yansıtır.
  *
@@ -420,7 +424,11 @@ async function handleSendMessage(rawMessage) {
         "Content-Type": "application/json",
         "X-User-Id": userId,
       },
-      body: JSON.stringify({ message: message }),
+      // Son 10 konuşma turu (user/assistant) geçmiş olarak gönderilir
+      body: JSON.stringify({
+        message: message,
+        history: sohbetGecmisi.slice(-10),
+      }),
     });
 
     // OpenAI yapılandırılmadığında HTTP 503 döner:
@@ -428,6 +436,10 @@ async function handleSendMessage(rawMessage) {
     if (response.status === 503) {
       const fallbackResult = await getLocalAssistantFallback(message);
       appendMessage("assistant", fallbackResult.answer, fallbackResult.tools || []);
+
+      // Başarılı yerel fallback yanıtını konuşma geçmişine ekle
+      sohbetGecmisi.push({ role: "user", content: message });
+      sohbetGecmisi.push({ role: "assistant", content: fallbackResult.answer });
       return;
     }
 
@@ -442,6 +454,7 @@ async function handleSendMessage(rawMessage) {
         // Hata metni ayrıştırılamazsa genel mesaj kullanılır
       }
       appendMessage("assistant", errorMsg, [], true);
+      // Hatalı istekler konuşma geçmişine (sohbetGecmisi) ASLA eklenmez
       return;
     }
 
@@ -449,16 +462,46 @@ async function handleSendMessage(rawMessage) {
     const data = await response.json();
     appendMessage("assistant", data.answer || "Yanıt alınamadı.", data.tools || []);
 
+    // SADECE response.ok olduğunda konuşma geçmişine ekle
+    sohbetGecmisi.push({ role: "user", content: message });
+    sohbetGecmisi.push({ role: "assistant", content: data.answer || "" });
+
   } catch (networkError) {
     // Ağ bağlantısı koptuğunda veya sunucuya erişilemediğinde yerel fallback devreye girer
     console.warn("[Sohbet Ağ Uyarısı - Yerel Fallback]:", networkError);
     const fallbackResult = await getLocalAssistantFallback(message);
     appendMessage("assistant", fallbackResult.answer, fallbackResult.tools || []);
+
+    // Çevrimdışı yerel fallback yanıtını da geçmişe ekle
+    sohbetGecmisi.push({ role: "user", content: message });
+    sohbetGecmisi.push({ role: "assistant", content: fallbackResult.answer });
   } finally {
     isSending = false;
     setLoading(false);
   }
 }
+
+/**
+ * Yeni sohbet başlatır:
+ * Konuşma geçmişini (sohbetGecmisi) sıfırlar, ekrandaki mesajları temizler
+ * ve başlangıç karşılama mesajını yeniden ekler.
+ */
+function handleNewChat() {
+  sohbetGecmisi = [];
+  const chatMessages = document.getElementById("chatMessages");
+  if (chatMessages) {
+    chatMessages.innerHTML = "";
+    appendMessage("assistant", WELCOME_MESSAGE);
+  }
+  const chatInput = document.getElementById("chatInput");
+  if (chatInput) {
+    chatInput.value = "";
+    chatInput.style.height = "auto";
+    chatInput.focus();
+  }
+}
+window.handleNewChat = handleNewChat;
+window.resetChat = handleNewChat;
 
 // Global olarak erişilebilir form gönderme işlevi (Sayfanın reload olmasını ve çift tıklamayı %100 engeller)
 window.handleChatSubmit = function(event) {

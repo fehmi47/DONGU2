@@ -170,15 +170,9 @@ def search_recipes(
                 "istenen_yemek": cleaned_dish,
                 "veritabaninda_var": False,
                 "talimat": (
-                    f"'{cleaned_dish}' veritabanında yok. Başka tarif önerme. Bu yemeğin tarifini SEN oluştur "
-                    "ve TAM OLARAK şu formatı kullan:\n"
-                    "💡 Asistan önerisi: <Yemek adı>\n"
-                    "(Bu tarif veritabanımızda kayıtlı değil, asistan tarafından oluşturuldu.)\n"
-                    "**Malzemeler (<kişi sayısı> kişilik):** önce mutfaktakiler, miktarlarıyla\n"
-                    "**Eksik:** mutfakta olmayanlar (yoksa bu satırı yazma)\n"
-                    "**Yapılışı:** numaralı adımlar\n"
-                    "**Süre:** yaklaşık <dakika>\n"
-                    "Son satır: Yaptıktan sonra kullandığın miktarları Mutfağım ekranından kaydetmeyi unutma!"
+                    "Bu yemek veritabanında yok. Başka tarif önerme. "
+                    "Kullanıcının istediği yemeğin tarifini ASİSTAN TARİFİ formatında "
+                    "sen oluştur ve başına '💡 Asistan önerisi' etiketi koy."
                 ),
             }
 

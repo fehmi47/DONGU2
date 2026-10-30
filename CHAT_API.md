@@ -15,15 +15,35 @@ Bu doküman, frontend geliştiricisinin DÖNGÜ AI Asistanı sohbet arayüzünü
 ## 2. İstek ve Yanıt Şemaları
 
 ### İstek Gövdesi (Request Body)
+Backend stateless (durumsuz) mimaride çalışır; oturum veya Redis geçmişi tutmaz. Konuşma bağlamı (context) frontend tarafından `history` dizisiyle gönderilir.
+
 ```json
 {
-  "message": "Bugün hangi ürünlerimi tüketmeliyim?"
+  "message": "Peki bu malzemelerle hangi çorbayı yapabilirim?",
+  "history": [
+    {
+      "role": "user",
+      "content": "Bugün hangi ürünlerimi tüketmeliyim?"
+    },
+    {
+      "role": "assistant",
+      "content": "Bugün öncelikle 1 günü kalan Salkım Domates ve 2 günü kalan Kırmızı Mercimek ürünlerinizi tüketmelisiniz."
+    }
+  ]
 }
 ```
 
 | Alan | Tip | Zorunlu | Açıklama |
 |---|---|---|---|
-| `message` | `string` | Evet | Kullanıcının girdiği doğal dil soru veya talimatı (1 - 2000 karakter). |
+| `message` | `string` | Evet | Kullanıcının girdiği yeni doğal dil soru veya talimatı (1 - 2000 karakter). |
+| `history` | `ChatTurn[]` | Hayır | Son konuşma geçmişi (en fazla 10 mesaj). Boş bırakılabilir (geriye dönük uyumlu). |
+
+#### `ChatTurn` Formatı (Sohbet Turu Nesnesi)
+
+| Alan | Tip | Kısıt / Doğrulama | Açıklama |
+|---|---|---|---|
+| `role` | `string` | Yalnızca `"user"` veya `"assistant"` | Mesajı gönderen taraf. `system` veya `tool` rolleri güvenlik nedeniyle 422 ile reddedilir. |
+| `content` | `string` | 1 - 4000 karakter | Mesajın metin içeriği. |
 
 ---
 

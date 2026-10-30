@@ -55,6 +55,7 @@ def chat_with_assistant(
             user_message=request.message,
             db=db,
             user_id=current_user.id,
+            history=request.history,
         )
         return ChatResponse(
             answer=result["answer"],

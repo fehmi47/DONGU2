@@ -8,7 +8,7 @@ ve elde edilen verilere dayanarak samimi, güvenilir bir yanıt üretir.
 
 import json
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 import openai
 
@@ -70,15 +70,21 @@ Ispanak ve yoğurtla yapabileceğin bir tarife bakalım mı?
 """
 
 
-def run_agent(user_message: str, db: Session, user_id: int) -> Dict[str, Any]:
+def run_agent(
+    user_message: str,
+    db: Session,
+    user_id: int,
+    history: Optional[List[Any]] = None,
+) -> Dict[str, Any]:
     """
-    Kullanıcı mesajını alır, OpenAI Chat Completions API ile araç çağırma döngüsünü yürütür
-    ve nihai yanıtı kullanılan araçların listesiyle birlikte döndürür.
+    Kullanıcı mesajını ve opsiyonel konuşma geçmişini alır, OpenAI Chat Completions API
+    ile araç çağırma döngüsünü yürütür ve nihai yanıtı kullanılan araçların listesiyle birlikte döndürür.
 
     Args:
         user_message: Kullanıcının girdiği metin
         db: Aktif SQLAlchemy veritabanı oturumu
         user_id: Doğrulanmış kullanıcının ID'si
+        history: Konuşma bağlamı için son sohbet mesajları listesi (ChatTurn veya dict)
 
     Returns:
         dict: {"answer": str, "tools": List[str]}
@@ -94,10 +100,23 @@ def run_agent(user_message: str, db: Session, user_id: int) -> Dict[str, Any]:
     schemas = tool_schemas()
     tools_used: List[str] = []
 
+    # 1. System Prompt (Asistanın kimliği ve sistem kuralları)
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_message},
     ]
+
+    # 2. Sohbet Geçmişi (Frontend tarafından tutulan son en fazla 10 mesaj)
+    # Geçmişe araç sonuçları (tool_calls/tool responses) EKLENMEZ; yalnızca kullanıcı ve asistan metinleri eklenir.
+    # Bu sayede model her yeni soruda araçları güncel kiler stoklarıyla yeniden çağırır ve veriler taze kalır.
+    if history:
+        for turn in history[-10:]:
+            r = turn.role if hasattr(turn, "role") else turn.get("role")
+            c = turn.content if hasattr(turn, "content") else turn.get("content")
+            if r in ("user", "assistant") and c:
+                messages.append({"role": r, "content": c})
+
+    # 3. Yeni Kullanıcı Mesajı
+    messages.append({"role": "user", "content": user_message})
 
     for iteration in range(MAX_ITERATIONS):
         try:
