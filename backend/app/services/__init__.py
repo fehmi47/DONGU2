@@ -20,6 +20,15 @@ from app.services.priority_service import (
     get_user_expiring_products,
     get_single_product_priority,
 )
+from app.services.recipe_service import (
+    get_recipes,
+    get_recipe_by_id,
+    create_recipe,
+    update_recipe,
+    delete_recipe,
+    get_recipe_ingredients,
+)
+from app.services.recipe_matcher import match_user_products_with_recipes
 
 __all__ = [
     "seed_categories",
@@ -38,5 +47,11 @@ __all__ = [
     "get_user_products_with_priority",
     "get_user_expiring_products",
     "get_single_product_priority",
+    "get_recipes",
+    "get_recipe_by_id",
+    "create_recipe",
+    "update_recipe",
+    "delete_recipe",
+    "get_recipe_ingredients",
+    "match_user_products_with_recipes",
 ]
-
