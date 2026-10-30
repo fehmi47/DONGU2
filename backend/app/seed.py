@@ -6,7 +6,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import init_db, SessionLocal
 from app.services.category_service import seed_categories
+from app.services.user_service import seed_users
 from app.data.seed_recipes import seed_recipes
+from app.data.seed_sample_products import seed_demo_products
 
 
 def main():
@@ -16,15 +18,25 @@ def main():
 
     db = SessionLocal()
     try:
-        categories = seed_categories(db)
-        print(f"Kategoriler başarıyla yüklendi! Toplam kategori: {len(categories)}")
+        # 1. Kullanıcıları yükle
+        users = seed_users(db)
+        print(f"Kullanıcılar yüklendi! Toplam kullanıcı: {len(users)}")
+        for u in users:
+            print(f" - [{u.id}] {u.username} ({u.email})")
 
+        # 2. Kategorileri yükle
+        categories = seed_categories(db)
+        print(f"Kategoriler yüklendi! Toplam kategori: {len(categories)}")
+
+        # 3. Tarifleri yükle
         recipes = seed_recipes(db)
-        print(f"Tarifler başarıyla yüklendi! Toplam tarif: {len(recipes)}")
-        for r in recipes[:5]:
-            print(f" - [{r.id}] {r.name} ({len(r.ingredients)} malzeme)")
-        if len(recipes) > 5:
-            print(f" ... ve {len(recipes) - 5} tarif daha.")
+        print(f"Tarifler yüklendi! Toplam tarif: {len(recipes)}")
+
+        # 4. Demo kullanıcısı için örnek ürünleri yükle
+        sample_prods = seed_demo_products(db, user_id=1)
+        print(f"Demo kullanıcısı için {len(sample_prods)} örnek ürün yüklendi.")
+
+        print("\nTUM BASLANGIC VERILERI BASARIYLA HAZIRLANDI!")
     finally:
         db.close()
 

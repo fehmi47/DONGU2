@@ -1,8 +1,9 @@
 from typing import Optional
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
+from app.services.user_service import get_or_create_user
 
 
 def get_current_user(
@@ -14,35 +15,12 @@ def get_current_user(
     )
 ) -> User:
     """
-    İsteği yapan kullanıcıyı tespit eden FastAPI bağımlılık fonksiyonu.
+    İsteği yapan kullanıcıyı tespit eden bağımlılık fonksiyonu.
     
     Çalışma Mantığı:
-    - İstek başlığında (Header) 'X-User-Id' gönderilmişse, veritabanından ilgili kullanıcıyı sorgular.
-      Kullanıcı bulunamazsa 404 Not Found hatası fırlatır.
-    - Eğer 'X-User-Id' gönderilmemişse (örneğin Swagger üzerinden doğrudan test yapılıyorsa),
-      sistemdeki 'demo_user' kullanıcısını döner veya otomatik oluşturur.
-    - Böylece hem testlerde ve API çağrılarında kullanıcı izolasyonu tam sağlanır, hem de Swagger
-      üzerinden kolayca deneme yapılabilir.
+    - Başlıkta 'X-User-Id' gönderilmişse (örneğin 1, 2 veya 3), ilgili kullanıcıyı getirir.
+      Eğer veritabanında henüz oluşturulmamışsa otomatik olarak oluşturur (asla 404 vermez).
+    - Eğer 'X-User-Id' gönderilmemişse, varsayılan olarak ID: 1 (demo_user) kullanıcısını döner.
     """
-    if x_user_id is not None:
-        user = db.query(User).filter(User.id == x_user_id).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"{x_user_id} ID'li kullanıcı bulunamadı."
-            )
-        return user
-
-    # Başlık gönderilmediğinde varsayılan demo kullanıcıyı temin etme
-    default_user = db.query(User).filter(User.username == "demo_user").first()
-    if not default_user:
-        default_user = User(
-            username="demo_user",
-            email="demo@dongu.org",
-            password_hash="demo_hashed_password"
-        )
-        db.add(default_user)
-        db.commit()
-        db.refresh(default_user)
-
-    return default_user
+    target_id = x_user_id if x_user_id is not None else 1
+    return get_or_create_user(db, user_id=target_id)

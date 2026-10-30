@@ -6,7 +6,9 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import init_db, SessionLocal
 from app.services.category_service import seed_categories
+from app.services.user_service import seed_users
 from app.data.seed_recipes import seed_recipes
+from app.data.seed_sample_products import seed_demo_products
 
 # API Router'ları
 from app.routers.products import router as products_router
@@ -30,14 +32,16 @@ INDEX_HTML = os.path.join(TEMPLATES_DIR, "index.html")
 async def lifespan(app: FastAPI):
     """
     Uygulama yaşam döngüsü yöneticisi.
-    Uygulama açılırken veritabanı tablolarını, varsayılan kategorileri ve
-    20 temel yemek tarifini idempotent olarak hazırlar.
+    Uygulama açılırken veritabanı tablolarını, varsayılan kullanıcıları,
+    kategorileri, 20 temel yemek tarifini ve demo ürünleri hazır eder.
     """
     init_db()
     db = SessionLocal()
     try:
+        seed_users(db)
         seed_categories(db)
         seed_recipes(db)
+        seed_demo_products(db, user_id=1)
     finally:
         db.close()
     yield
