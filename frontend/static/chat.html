@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DÖNGÜ — AI Mutfak Asistanı</title>
+  <!-- DÖNGÜ Ana CSS ve Sohbet Özel CSS Dosyaları -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/chat.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
+</head>
+<body>
+
+  <!-- NAVBAR (DÖNGÜ Standart Başlık Menüsü) -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <span class="brand-leaf">🌿</span>
+        <span>DÖNGÜ</span>
+      </a>
+
+      <!-- Sayfa Gezinme Linkleri -->
+      <ul class="nav-links">
+        <li><a class="nav-link" href="/#dashboard">📊 Dashboard</a></li>
+        <li><a class="nav-link" href="/#pantry">🥬 Mutfağım</a></li>
+        <li><a class="nav-link" href="/#recipes">🍲 Tariflerim</a></li>
+        <li><a class="nav-link" href="/#impact">📈 Etki Paneli</a></li>
+        <li><a class="nav-link active" href="/static/chat.html">🤖 Asistan</a></li>
+      </ul>
+
+      <div class="nav-user">
+        <a href="/" class="btn btn-outline" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; text-decoration: none;">
+          ⬅️ Ana Sayfaya Dön
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- SOHBET EKRANI ANA GÖVDESİ -->
+  <main class="chat-page-wrapper">
+    <div class="chat-card">
+
+      <!-- Sohbet Kartı Başlığı -->
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar-assistant">🌿</div>
+          <div>
+            <div class="chat-header-title">
+              <span>DÖNGÜ Asistanı</span>
+            </div>
+            <div class="chat-header-status">
+              <span class="status-dot"></span>
+              <span>Çevrimiçi • Sıfır Atık Rehberi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mesajların Aktığı Alan -->
+      <div class="chat-messages" id="chatMessages">
+        <!-- Mesajlar JavaScript (chat.js) tarafından güvenli şekilde buraya eklenir -->
+      </div>
+
+      <!-- Asistan Düşünüyor / Yükleniyor Göstergesi -->
+      <div class="typing-indicator-row" id="typingIndicator" style="display: none; padding: 0.5rem 1.5rem;">
+        <div class="message-avatar">🌿</div>
+        <div class="typing-bubble">
+          <span>Asistan düşünüyor</span>
+          <div class="typing-dots">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kural 7: Hazır Soru Butonları (Tıklanınca doğrudan gönderir) -->
+      <div class="suggestions-bar" id="suggestionsBar">
+        <button type="button" class="suggestion-chip" data-question="Bugün ne tüketmeliyim?">
+          ⏱️ Bugün ne tüketmeliyim?
+        </button>
+        <button type="button" class="suggestion-chip" data-question="Ispanakla ne yapabilirim?">
+          🥬 Ispanakla ne yapabilirim?
+        </button>
+        <button type="button" class="suggestion-chip" data-question="Bu ay ne kadar gıda kurtardım?">
+          📊 Bu ay ne kadar gıda kurtardım?
+        </button>
+        <button type="button" class="suggestion-chip" data-question="Ambalajları nasıl ayırayım?">
+          ♻️ Ambalajları nasıl ayırayım?
+        </button>
+      </div>
+
+      <!-- Mesaj Giriş Alanı (Input Form) -->
+      <div class="chat-input-container">
+        <form class="chat-input-form" id="chatForm">
+          <textarea
+            id="chatInput"
+            class="chat-textarea"
+            rows="1"
+            placeholder="Bir soru sorun... (örn: Bugün mutfağımda ne pişirebilirim?)"
+            autocomplete="off"
+          ></textarea>
+          <button type="submit" id="chatSendBtn" class="chat-send-btn" title="Gönder">
+            <span>Gönder</span>
+            <span>➤</span>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Sohbet Ekranı Mantığı -->
+  <script src="/static/js/chat.js"></script>
+</body>
+</html>
