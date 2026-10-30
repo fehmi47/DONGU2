@@ -4,6 +4,10 @@ from app.database import Base
 
 
 class Category(Base):
+    """
+    Gıda ürünlerini mantıksal gruplara (Sebzeler, Meyveler, Süt Ürünleri vb.) ayıran model.
+    Kullanıcıların ürünlerini kategorize etmesini ve kategori bazlı filtreleme yapmasını sağlar.
+    """
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)

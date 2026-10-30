@@ -13,6 +13,15 @@ from app.database import Base
 
 
 class ConsumptionLog(Base):
+    """
+    Kullanıcının gıda tüketim veya israf hareketlerini denetleyen geçmiş kayıt modeli.
+    
+    Temel Sorumlulukları:
+    - Bir ürünün ne kadarının tüketildiğini ('consumed'), israf edildiğini ('discarded')
+      veya bir tarifte kullanıldığını ('recipe_used') kaydetmek.
+    - Etki analizi ve önlenen gıda israfı metriklerinin hesaplanmasına veri sağlamak.
+    - Ürün veritabanından silinse bile geçmiş tüketim istatistiklerinin silinmemesini garanti etmek.
+    """
     __tablename__ = "consumption_logs"
 
     id = Column(Integer, primary_key=True, index=True)

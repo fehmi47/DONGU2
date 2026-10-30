@@ -5,6 +5,10 @@ from app.database import Base
 
 
 class User(Base):
+    """
+    Sisteme kayıtlı kullanıcıların kimlik ve hesap bilgilerini tutan model.
+    Kullanıcıya ait ürünler, tüketim logları ve bildirimlerin izolasyonunu sağlar.
+    """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)

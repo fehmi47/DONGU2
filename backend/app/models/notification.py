@@ -13,6 +13,10 @@ from app.database import Base
 
 
 class Notification(Base):
+    """
+    Kullanıcıya STT yaklaşması, TETT uyarısı veya sistem bilgilendirmesi göndermek için kullanılan model.
+    Kullanıcının hangi ürünle ilgili uyarı aldığını ve bildirimi okuyup okumadığını takip eder.
+    """
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)

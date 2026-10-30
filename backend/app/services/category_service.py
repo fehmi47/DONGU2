@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models.category import Category
 
+# Sistemin varsayılan gıda kategorileri listesi
 DEFAULT_CATEGORIES = [
     "Sebzeler",
     "Meyveler",
@@ -19,9 +20,12 @@ DEFAULT_CATEGORIES = [
 
 def seed_categories(db: Session) -> List[Category]:
     """
-    Idempotent category seeding.
-    Only adds categories that don't already exist.
-    Preserves existing records and IDs.
+    Sistemin ihtiyaç duyduğu temel gıda kategorilerini veritabanına ekler.
+    
+    Çalışma Mantığı:
+    - Veritabanında kayıtlı mevcut kategorileri kontrol eder.
+    - Sadece henüz eklenmemiş olan kategorileri yeni kayıt olarak ekler (idempotent).
+    - Mevcut kayıtları ve atanmış ID'leri asla bozmaz; tekrar tekrar çalıştırılabilir.
     """
     existing = {c.name for c in db.query(Category).all()}
     added = []
@@ -41,10 +45,17 @@ def seed_categories(db: Session) -> List[Category]:
 
 
 def get_categories(db: Session) -> List[Category]:
-    """Returns all categories ordered by ID."""
+    """
+    Sistemde kayıtlı olan tüm gıda kategorilerini ID sırasına göre listeler.
+    Ürün ekleme formlarında veya kategori bazlı filtreleme menülerinde kullanılır.
+    """
     return db.query(Category).order_by(Category.id).all()
 
 
 def get_category_by_id(db: Session, category_id: int) -> Optional[Category]:
-    """Returns category by its primary key ID."""
+    """
+    Belirtilen ID'ye sahip kategoriyi veritabanından getirir.
+    Kategori bulunamazsa None döndürür.
+    """
     return db.query(Category).filter(Category.id == category_id).first()
+

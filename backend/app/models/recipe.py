@@ -4,6 +4,10 @@ from app.database import Base
 
 
 class Recipe(Base):
+    """
+    Eldeki malzemeleri değerlendirmek için sunulan yemek tariflerini tutan model.
+    Hazırlık süresi, pişirme süresi, porsiyon, zorluk derecesi ve adımları barındırır.
+    """
     __tablename__ = "recipes"
 
     id = Column(Integer, primary_key=True, index=True)

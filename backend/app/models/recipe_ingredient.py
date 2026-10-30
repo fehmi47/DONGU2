@@ -4,6 +4,10 @@ from app.database import Base
 
 
 class RecipeIngredient(Base):
+    """
+    Belirli bir yemek tarifine ait malzeme kalemlerini ve miktarlarını tutan model.
+    Malzemenin opsiyonel olup olmadığını ('is_optional') belirterek esnek tarif önerilerini destekler.
+    """
     __tablename__ = "recipe_ingredients"
 
     id = Column(Integer, primary_key=True, index=True)

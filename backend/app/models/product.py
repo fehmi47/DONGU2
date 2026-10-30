@@ -15,6 +15,15 @@ from app.database import Base
 
 
 class Product(Base):
+    """
+    Kullanıcının kiler veya buzdolabında bulunan gıda ürünlerini temsil eden veritabanı modeli.
+    
+    Temel Sorumlulukları:
+    - Ürünün miktarını, birimini ve saklama yerini (buzdolabı, dondurucu, kiler) takip etmek.
+    - STT (Son Tüketim Tarihi) veya TETT (Tavsiye Edilen Tüketim Tarihi) takibini sağlamak.
+    - Ürünün yaşam döngüsünü ('active', 'consumed', 'discarded') yönetmek.
+    - Tüketim logları ve bildirimlerle olan ilişkileri kurmak.
+    """
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
