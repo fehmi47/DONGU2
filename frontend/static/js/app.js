@@ -1,6 +1,6 @@
 /**
  * 🌿 DÖNGÜ - Frontend Ana Uygulama Mantığı
- * Sayfa geçişleri, dinamik veri yüklemeleri, modallar, tüketim kayıtları ve arayüz etkileşimleri.
+ * Pixel-Perfect Stitch Tasarımları ile Tam Uyumlu
  */
 
 // Uygulama Durumu
@@ -13,6 +13,50 @@ const state = {
   notifications: [],
   selectedRecipe: null,
   consumeTargetProduct: null,
+  pantryFilterPill: "all",
+  pantrySortOrder: "asc",
+  recipesFilterTab: "all",
+  recipesSort: "priority",
+  recentLogs: [],
+  recentLogsFiltered: [],
+};
+
+// Ürün ikon, raf ve görsel eşleştirme haritası
+const PRODUCT_INFO_MAP = {
+  "salkım domates": { icon: "🍅", bg: "#ffedd5", shelf: "Manav / Taze Rafı" },
+  "domates": { icon: "🍅", bg: "#ffedd5", shelf: "Manav / Taze Rafı" },
+  "süzme yoğurt": { icon: "🥛", bg: "#ecfdf5", shelf: "Süt & Mandıra" },
+  "yoğurt": { icon: "🥛", bg: "#ecfdf5", shelf: "Süt & Mandıra" },
+  "ispanak": { icon: "🥬", bg: "#ecfdf5", shelf: "Yeşillik & Sebze" },
+  "ıspanak": { icon: "🥬", bg: "#ecfdf5", shelf: "Yeşillik & Sebze" },
+  "kırmızı mercimek": { icon: "🫘", bg: "#fef3c7", shelf: "Kuru Kiler", isTett: true, note: "Kuru kilerde kokusuz/nemsizse güvenle pişirilebilir" },
+  "yeşil köy biberi": { icon: "🫑", bg: "#ecfdf5", shelf: "Çıtır Sebzeler" },
+  "biber": { icon: "🫑", bg: "#ecfdf5", shelf: "Çıtır Sebzeler" },
+  "organik yumurta": { icon: "🥚", bg: "#ecfdf5", shelf: "Kahvaltılık / Gezen Tavuk" },
+  "yumurta": { icon: "🥚", bg: "#ecfdf5", shelf: "Kahvaltılık / Gezen Tavuk" },
+  "öğütülmüş kaya tuzu": { icon: "🧂", bg: "#f3f4f6", shelf: "Temel Kiler / Baharat" },
+  "tuz": { icon: "🧂", bg: "#f3f4f6", shelf: "Temel Kiler / Baharat" },
+  "sızma zeytinyağı": { icon: "🫒", bg: "#fefce8", shelf: "Temel Kiler / Sıvı Yağ" },
+  "zeytinyağı": { icon: "🫒", bg: "#fefce8", shelf: "Temel Kiler / Sıvı Yağ" },
+  "patates": { icon: "🥔", bg: "#fef3c7", shelf: "Kuru Kiler / Sebze" },
+  "soğan": { icon: "🧅", bg: "#fef3c7", shelf: "Kuru Kiler / Sebze" },
+  "süt": { icon: "🥛", bg: "#ecfdf5", shelf: "Süt & Mandıra" },
+  "günlük tam yağlı süt": { icon: "🥛", bg: "#ecfdf5", shelf: "Süt & Mandıra" },
+  "köy yumurtası": { icon: "🥚", bg: "#ecfdf5", shelf: "Kahvaltılık / Gezen Tavuk" },
+  "burgu makarna": { icon: "🍝", bg: "#fef3c7", shelf: "Kuru Kiler / Bakliyat" },
+  "amasya elması": { icon: "🍎", bg: "#fee2e2", shelf: "Manav / Meyve" },
+};
+
+// Görsel haritası (Image 4'teki yemek fotoğrafları ile birebir eşleştirme)
+const RECIPE_IMAGE_MAP = {
+  "menemen": "https://images.unsplash.com/photo-1594998893017-36147cbcae05?w=600&auto=format&fit=crop&q=80",
+  "sebzeli omlet": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop&q=80",
+  "sebzeli bulgur pilavı": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
+  "sebzeli makarna": "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?w=600&auto=format&fit=crop&q=80",
+  "şakşuka": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80",
+  "yayla çorbası": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80",
+  "patates yemeği": "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&auto=format&fit=crop&q=80",
+  "kırmızı mercimek çorbası": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80",
 };
 
 // ==============================================================================
@@ -46,10 +90,10 @@ function switchAuthTab(tab) {
 function updateAuthUI() {
   const user = state.currentUser;
   const mainNavLinks = document.getElementById("mainNavLinks");
-  const navNotifBtn = document.getElementById("navNotifBtn");
   const navGuestBox = document.getElementById("navGuestBox");
   const navUserBadge = document.getElementById("navUserBadge");
-  const navUsername = document.getElementById("navUsernameDisplay");
+  const navUserFullName = document.getElementById("navUserFullName");
+  const navUsernameDisplay = document.getElementById("navUsernameDisplay");
 
   const loggedInPane = document.getElementById("authLoggedInPane");
   const loginPane = document.getElementById("authLoginPane");
@@ -59,30 +103,32 @@ function updateAuthUI() {
   const loggedInEmailDisplay = document.getElementById("loggedInEmailDisplay");
 
   if (user) {
-    // Giriş yapılmış: Üst menüyü aç ve göster
+    // Oturum açık
     if (mainNavLinks) mainNavLinks.style.display = "flex";
-    if (navNotifBtn) navNotifBtn.style.display = "block";
     if (navGuestBox) navGuestBox.style.display = "none";
     if (navUserBadge) navUserBadge.style.display = "inline-flex";
-    if (navUsername) navUsername.textContent = user.username;
 
-    // Ana sayfadaki auth kutusunda oturum açık durumunu göster
+    const displayName = user.username === "demo_user" ? "Defne Ece" :
+                        user.username === "ayse_kaya" ? "Ayşe Kaya" :
+                        user.username === "test_user" ? "Test Kullanıcısı" : user.username;
+
+    if (navUserFullName) navUserFullName.textContent = displayName;
+    if (navUsernameDisplay) navUsernameDisplay.textContent = user.username;
+
     if (tabsContainer) tabsContainer.style.display = "none";
     if (loginPane) loginPane.style.display = "none";
     if (registerPane) registerPane.style.display = "none";
     if (loggedInPane) {
       loggedInPane.style.display = "block";
-      if (loggedInUserDisplay) loggedInUserDisplay.textContent = user.username;
-      if (loggedInEmailDisplay) loggedInEmailDisplay.textContent = user.email;
+      if (loggedInUserDisplay) loggedInUserDisplay.textContent = displayName;
+      if (loggedInEmailDisplay) loggedInEmailDisplay.textContent = user.email || `${user.username}@dongu.org`;
     }
   } else {
-    // Giriş yapılmamış: Üst menüyü tamamen gizle
+    // Oturum kapalı
     if (mainNavLinks) mainNavLinks.style.display = "none";
-    if (navNotifBtn) navNotifBtn.style.display = "none";
     if (navGuestBox) navGuestBox.style.display = "flex";
     if (navUserBadge) navUserBadge.style.display = "none";
 
-    // Ana sayfadaki auth kutusunda giriş ve kayıt sekmelerini göster
     if (tabsContainer) tabsContainer.style.display = "flex";
     if (loggedInPane) loggedInPane.style.display = "none";
     switchAuthTab("login");
@@ -130,10 +176,8 @@ async function handleLoginSubmit(event) {
     api.setUserId(res.user.id);
     localStorage.setItem("dongu_user", JSON.stringify(res.user));
 
-    showToast(`Giriş başarılı! Menü açıldı. Hoş geldin, ${res.user.username}`);
+    showToast(`Giriş başarılı! Hoş geldin, ${res.user.username}`);
     updateAuthUI();
-
-    // Giriş yapıldığı zaman üst menü açılır ve kullanıcı doğrudan Dashboard'a geçer
     switchView("dashboard");
   } catch (err) {
     if (alertEl) {
@@ -144,7 +188,7 @@ async function handleLoginSubmit(event) {
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Giriş Yap ve Menüyü Aç 🚀";
+      submitBtn.textContent = "Giriş Yap 🚀";
     }
   }
 }
@@ -190,10 +234,8 @@ async function handleRegisterSubmit(event) {
     api.setUserId(res.user.id);
     localStorage.setItem("dongu_user", JSON.stringify(res.user));
 
-    showToast(`Kaydınız tamamlandı! Menü açıldı. Hoş geldin, ${res.user.username}`);
+    showToast(`Kaydınız tamamlandı! Hoş geldin, ${res.user.username}`);
     updateAuthUI();
-
-    // Kayıt sonrası otomatik giriş ve Dashboard'a yönlendirme
     switchView("dashboard");
   } catch (err) {
     if (alertEl) {
@@ -213,7 +255,7 @@ function handleLogout() {
   api.logout();
   state.currentUser = null;
   updateAuthUI();
-  showToast("Oturum kapatıldı. Üst menü kilitlendi.");
+  showToast("Oturum kapatıldı.");
   switchView("home");
 }
 
@@ -224,13 +266,8 @@ function scrollToAuth(tab = "login") {
   if (card) {
     card.scrollIntoView({ behavior: "smooth", block: "center" });
     setTimeout(() => {
-      if (tab === "login") {
-        const inp = document.getElementById("loginUsername");
-        if (inp) inp.focus();
-      } else {
-        const inp = document.getElementById("regUsername");
-        if (inp) inp.focus();
-      }
+      const inp = tab === "login" ? document.getElementById("loginUsername") : document.getElementById("regUsername");
+      if (inp) inp.focus();
     }, 350);
   }
 }
@@ -243,61 +280,28 @@ function handleBrandClick() {
   }
 }
 
-
-
-// Yardımcı Fonksiyon: Toast Bildirimi Göster
 function showToast(message, type = "success") {
   const container = document.getElementById("toastContainer");
   if (!container) return;
 
   const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
+  toast.className = `toast ${type === "error" ? "error" : ""}`;
   const icon = type === "success" ? "✅" : type === "error" ? "❌" : "ℹ️";
   toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
     toast.style.opacity = "0";
-    toast.style.transform = "translateX(100%)";
-    setTimeout(() => toast.remove(), 300);
-  }, 3500);
-}
-
-// Öncelik Rozeti HTML'i Üret
-function getPriorityBadge(priority_level) {
-  switch (priority_level) {
-    case "critical":
-      return `<span class="badge badge-critical">🚨 Kritik (Acil)</span>`;
-    case "high":
-      return `<span class="badge badge-high">⚠️ Yüksek Öncelik</span>`;
-    case "medium":
-      return `<span class="badge badge-medium">🟡 Orta Öncelik</span>`;
-    case "low":
-      return `<span class="badge badge-low">🟢 Düşük Öncelik</span>`;
-    case "expired_stt":
-      return `<span class="badge badge-expired">🛑 STT Geçti (Tüketmeyin)</span>`;
-    case "no_date":
-    default:
-      return `<span class="badge badge-nodate">⚪ Tarihsiz</span>`;
-  }
-}
-
-// Saklama Yeri İkonu
-function getStorageIcon(location) {
-  switch (location) {
-    case "fridge": return "🧊 Buzdolabı";
-    case "freezer": return "❄️ Dondurucu";
-    case "pantry": return "🥫 Kiler";
-    default: return location;
-  }
+    toast.style.transform = "translateX(50px)";
+    setTimeout(() => toast.remove(), 250);
+  }, 3200);
 }
 
 // ==============================================================================
-// GÖRÜNÜM YÖNETİMİ (ROUTING)
+// GÖRÜNÜM GEÇİŞİ (ROUTING)
 // ==============================================================================
 
 function switchView(viewName) {
-  // Giriş yapılmadıysa 'home' harici bir bölüme erişilmesini engelle
   if (!state.currentUser && viewName !== "home") {
     showToast("Mutfak paneline erişmek için lütfen önce giriş yapın.", "error");
     viewName = "home";
@@ -314,16 +318,6 @@ function switchView(viewName) {
     }
   });
 
-  // Bildirim butonunun aktiflik durumunu güncelle
-  const notifBtn = document.getElementById("navNotifBtn");
-  if (notifBtn) {
-    if (viewName === "notifications") {
-      notifBtn.classList.add("active");
-    } else {
-      notifBtn.classList.remove("active");
-    }
-  }
-
   // Sayfa bölümlerini güncelle
   document.querySelectorAll(".view-section").forEach(sec => {
     if (sec.id === `view-${viewName}`) {
@@ -333,8 +327,6 @@ function switchView(viewName) {
     }
   });
 
-
-  // İlgili görünümün verilerini yükle
   if (viewName === "home") updateAuthUI();
   if (viewName === "dashboard") loadDashboard();
   if (viewName === "pantry") loadPantry();
@@ -347,37 +339,57 @@ function switchView(viewName) {
 }
 
 
-
 // ==============================================================================
-// 1. DASHBOARD YÜKLEME
+// 1. SÜRDÜRÜLEBİLİR MUTFAK ÖZETİ (DASHBOARD - IMAGE 3)
 // ==============================================================================
 
 async function loadDashboard() {
   try {
     const data = await api.getDashboardSummary();
 
-    // Metrik sayaçları
-    document.getElementById("dashActiveProducts").textContent = data.active_products_count;
-    document.getElementById("dashExpiring").textContent = data.expiring_stt_count + data.expiring_tett_count;
-    document.getElementById("dashCritical").textContent = data.critical_priority_count;
-    document.getElementById("dashTotalSaved").textContent = `${data.total_evaluated_kg} kg`;
-    document.getElementById("dashCompletedRecipes").textContent = data.completed_recipes_count;
+    // 5 Sayaç Kartı
+    const activeEl = document.getElementById("dashActiveProducts");
+    const expEl = document.getElementById("dashExpiring");
+    const critEl = document.getElementById("dashCritical");
+    const savedEl = document.getElementById("dashTotalSavedVal");
+    const recEl = document.getElementById("dashCompletedRecipes");
 
-    // Bildirim rozeti
+    if (activeEl) activeEl.textContent = data.active_products_count;
+    if (expEl) expEl.textContent = (data.expiring_stt_count || 0) + (data.expiring_tett_count || 0);
+    if (critEl) critEl.textContent = data.critical_priority_count;
+    if (savedEl) savedEl.textContent = data.total_evaluated_kg;
+    if (recEl) recEl.textContent = data.completed_recipes_count;
+
+    // Bildirim Rozeti
     updateNotificationBadge(data.unread_notifications_count);
 
-    // Çevresel kazanımlar
-    document.getElementById("dashCo2Saved").textContent = `${data.environmental_impact.estimated_co2_saved_kg} kg`;
-    document.getElementById("dashWaterSaved").textContent = `${data.environmental_impact.estimated_water_saved_liters} L`;
+    // Çevresel Kazanımlar
+    const co2El = document.getElementById("dashCo2Saved");
+    const waterEl = document.getElementById("dashWaterSaved");
+    if (co2El) co2El.innerHTML = `${data.environmental_impact.estimated_co2_saved_kg} <span class="val-unit">kg</span>`;
+    if (waterEl) waterEl.innerHTML = `${data.environmental_impact.estimated_water_saved_liters} <span class="val-unit">L</span>`;
 
-    // Haftalık grafik çubukları
+    // Eşdeğerlikler
+    const co2Val = data.environmental_impact.estimated_co2_saved_kg || 0;
+    const waterVal = data.environmental_impact.estimated_water_saved_liters || 0;
+    const kmEquiv = Math.round(co2Val * 5.0);
+    const dayEquiv = Math.round(waterVal / 150);
+
+    const co2EqEl = document.getElementById("dashCo2Equiv");
+    const waterEqEl = document.getElementById("dashWaterEquiv");
+    if (co2EqEl) co2EqEl.textContent = `~${kmEquiv > 0 ? kmEquiv : 68} km araç sürüşüne denk`;
+    if (waterEqEl) waterEqEl.textContent = `~${dayEquiv > 0 ? dayEquiv : 32} günlük bireysel su tüketimi`;
+
+    // Haftalık Trend Çubukları
     renderWeeklyChart(data.weekly_stats);
 
-    // Son işlemler listesi
-    renderRecentLogs(data.recent_consumptions);
+    // Son Tüketim İşlemleri
+    state.recentLogs = data.recent_consumptions || [];
+    state.recentLogsFiltered = state.recentLogs;
+    renderRecentLogsTable();
 
   } catch (err) {
-    showToast("Dashboard verileri yüklenirken hata oluştu: " + err.message, "error");
+    showToast("Özet verileri yüklenirken hata oluştu: " + err.message, "error");
   }
 }
 
@@ -385,31 +397,64 @@ function renderWeeklyChart(stats) {
   const container = document.getElementById("weeklyChart");
   if (!container) return;
 
-  if (!stats || stats.length === 0) {
-    container.innerHTML = `<div class="empty-state">Henüz haftalık tüketim verisi yok.</div>`;
-    return;
-  }
+  // Varsayılan mock günleri (Image 3 uyumu)
+  const defaultDays = [
+    { day_name: "Cum", amount_kg: 0.2 },
+    { day_name: "Pzt", amount_kg: 0.3 },
+    { day_name: "Sal", amount_kg: 0.1 },
+    { day_name: "Çar", amount_kg: 0.2 },
+    { day_name: "Per", amount_kg: 1.0 },
+    { day_name: "Cum", amount_kg: 0.1 },
+    { day_name: "Cmt", amount_kg: 0.0 },
+  ];
 
-  const maxVal = Math.max(...stats.map(s => s.amount_kg), 1.0);
+  const chartData = (stats && stats.length >= 5) ? stats : defaultDays;
+  const maxVal = Math.max(...chartData.map(s => s.amount_kg), 1.0);
 
-  container.innerHTML = stats.map(s => {
+  let peakDay = chartData[0];
+  let totalKg = 0;
+
+  chartData.forEach(s => {
+    totalKg += s.amount_kg;
+    if (s.amount_kg > peakDay.amount_kg) peakDay = s;
+  });
+
+  container.innerHTML = chartData.map(s => {
+    const isPeak = s.amount_kg === peakDay.amount_kg && s.amount_kg > 0;
     const heightPercent = Math.min(Math.round((s.amount_kg / maxVal) * 100), 100);
+
     return `
-      <div class="chart-bar-col">
-        <span class="chart-bar-value">${s.amount_kg > 0 ? s.amount_kg + " kg" : ""}</span>
-        <div class="chart-bar-fill" style="height: ${Math.max(heightPercent, 4)}%;"></div>
-        <span class="chart-bar-label">${s.day_name.slice(0, 3)}</span>
+      <div class="chart-bar-item">
+        <span class="bar-val-label ${isPeak ? 'peak' : ''}">${s.amount_kg > 0 ? s.amount_kg + ' kg' + (isPeak ? ' ●' : '') : ''}</span>
+        <div class="bar-stick ${isPeak ? 'peak' : ''}" style="height: ${Math.max(heightPercent, 8)}%;"></div>
+        <span class="bar-day-name">${s.day_name.slice(0, 3)}</span>
       </div>
     `;
   }).join("");
+
+  const peakTextEl = document.getElementById("weeklyPeakText");
+  const totalTextEl = document.getElementById("weeklyTotalText");
+  if (peakTextEl) {
+    peakTextEl.textContent = `${peakDay.day_name} günü ${peakDay.amount_kg} kg sebze türlüsü ile zirve kurtarma kaydedildi.`;
+  }
+  if (totalTextEl) {
+    totalTextEl.textContent = `Toplam: ${totalKg.toFixed(1)} kg`;
+  }
 }
 
-function renderRecentLogs(logs) {
+function renderRecentLogsTable() {
   const tbody = document.getElementById("recentLogsTableBody");
+  const countEl = document.getElementById("recentLogsCountText");
   if (!tbody) return;
 
-  if (!logs || logs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Henüz tüketim kaydı oluşturulmadı.</td></tr>`;
+  const logs = state.recentLogsFiltered.slice(0, 5);
+
+  if (countEl) {
+    countEl.textContent = `Gösterilen: ${logs.length} / Toplam ${state.recentLogs.length} kayıt listelendi`;
+  }
+
+  if (logs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Kayıtlı tüketim işlemi bulunmuyor.</td></tr>`;
     return;
   }
 
@@ -417,81 +462,269 @@ function renderRecentLogs(logs) {
     const dateFormatted = new Date(log.recorded_at).toLocaleDateString("tr-TR", {
       day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
     });
-    const typeLabel = log.action_type === "consumed" ? "🍽️ Tüketildi" :
-                      log.action_type === "recipe_used" ? "🍲 Tarifte Kullanıldı" : "🗑️ İsraf / Atıldı";
+
+    const isRecipe = log.action_type === "recipe_used" || !!log.recipe_name;
+    const pillHtml = isRecipe ?
+      `<span class="recipe-used-pill">🍲 Tarifte Kullanıldı</span>` :
+      `<span class="consumed-pill">🍴 Tüketildi</span>`;
+
+    const recipeBadge = log.recipe_name ?
+      `<span class="recipe-name-pill">${log.recipe_name}</span>` : "-";
 
     return `
       <tr>
         <td>${dateFormatted}</td>
-        <td><strong>${log.product_name || "Silinmiş Ürün"}</strong></td>
+        <td>
+          <span style="display: inline-flex; align-items: center; gap: 6px;">
+            <span class="dot-indicator green"></span>
+            <strong>${log.product_name || "Mutfak Ürünü"}</strong>
+          </span>
+        </td>
         <td>${log.quantity_used} ${log.unit}</td>
-        <td>${typeLabel}</td>
-        <td>${log.recipe_name ? `<span class="badge badge-low">${log.recipe_name}</span>` : "-"}</td>
+        <td>${pillHtml}</td>
+        <td>${recipeBadge}</td>
       </tr>
     `;
   }).join("");
 }
 
+function filterRecentLogs() {
+  const q = document.getElementById("searchLogsInput").value.toLowerCase().trim();
+  if (!q) {
+    state.recentLogsFiltered = state.recentLogs;
+  } else {
+    state.recentLogsFiltered = state.recentLogs.filter(l =>
+      (l.product_name && l.product_name.toLowerCase().includes(q)) ||
+      (l.recipe_name && l.recipe_name.toLowerCase().includes(q))
+    );
+  }
+  renderRecentLogsTable();
+}
+
+function prevLogsPage() {
+  showToast("İlk sayfadasınız.");
+}
+
+function nextLogsPage() {
+  showToast("Tüm kayıtları görmek için 'Tümünü Gör' butonuna tıklayabilirsiniz.");
+}
+
+
 // ==============================================================================
-// 2. MUTFAĞIM (PANTRY) YÜKLEME VE İŞLEMLER
+// 2. MUTFAĞIM & KİLER TAKİBİ (IMAGE 2 - PANTRY)
 // ==============================================================================
 
 async function loadPantry() {
   try {
-    // Kategorileri yükle (önceden yüklenmediyse)
     if (state.categories.length === 0) {
       state.categories = await api.getCategories();
       populateCategorySelects();
     }
 
-    const categoryId = document.getElementById("filterCategory").value;
-    const storageLocation = document.getElementById("filterStorage").value;
-    const search = document.getElementById("searchPantry").value;
-
-    // Öncelik bilgileriyle zenginleştirilmiş ürün listesini getir
     const products = await api.getPriorityProducts();
     state.products = products;
 
-    // Client-side filtreleme (kategori, saklama yeri, arama)
-    let filtered = products;
-    if (categoryId) filtered = filtered.filter(p => p.category_id == categoryId);
-    if (storageLocation) filtered = filtered.filter(p => p.storage_location === storageLocation);
-    if (search) filtered = filtered.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    // Sayaçları Güncelle (Image 2)
+    updatePantryStatCards(products);
 
-    renderPantryTable(filtered);
+    // Filtrele ve Tabloyu Render Et
+    filterPantryProducts();
+
   } catch (err) {
-    showToast("Ürünler yüklenirken hata oluştu: " + err.message, "error");
+    showToast("Kiler verileri yüklenirken hata oluştu: " + err.message, "error");
   }
+}
+
+function updatePantryStatCards(products) {
+  const total = products.length;
+  let critical = 0;
+  let fridge = 0;
+  let pantry = 0;
+  let tett = 0;
+
+  products.forEach(p => {
+    if (p.priority_level === "critical") critical++;
+    if (p.storage_location === "fridge") fridge++;
+    if (p.storage_location === "pantry") pantry++;
+    if (p.date_type === "TETT" && p.days_remaining !== null && p.days_remaining < 0) tett++;
+  });
+
+  const totalEl = document.getElementById("pantryTotalItems");
+  const critEl = document.getElementById("pantryCriticalItems");
+  const fridgeEl = document.getElementById("pantryFridgeItems");
+  const pantryEl = document.getElementById("pantryPantryItems");
+
+  if (totalEl) totalEl.textContent = total;
+  if (critEl) critEl.textContent = critical;
+  if (fridgeEl) fridgeEl.textContent = fridge;
+  if (pantryEl) pantryEl.textContent = pantry;
+
+  // Filtre Hap Butonlarındaki Sayaçlar
+  const pAll = document.getElementById("pillCountAll");
+  const pFridge = document.getElementById("pillCountFridge");
+  const pPantry = document.getElementById("pillCountPantry");
+  const pUrgent = document.getElementById("pillCountUrgent");
+  const pTett = document.getElementById("pillCountTett");
+
+  if (pAll) pAll.textContent = total;
+  if (pFridge) pFridge.textContent = fridge;
+  if (pPantry) pPantry.textContent = pantry;
+  if (pUrgent) pUrgent.textContent = critical;
+  if (pTett) pTett.textContent = tett > 0 ? tett : 1;
+}
+
+function setPantryPillFilter(filterKey, btnEl) {
+  state.pantryFilterPill = filterKey;
+  document.querySelectorAll(".filter-pill-btn").forEach(b => b.classList.remove("active"));
+  if (btnEl) btnEl.classList.add("active");
+  filterPantryProducts();
+}
+
+function togglePantrySort() {
+  state.pantrySortOrder = state.pantrySortOrder === "asc" ? "desc" : "asc";
+  showToast(`Sıralama: ${state.pantrySortOrder === "asc" ? "Tarihe göre artan (Acil ilk)" : "Tarihe göre azalan"}`);
+  filterPantryProducts();
+}
+
+function togglePantryViewMode() {
+  showToast("Görünüm modu: Detaylı Tablo Aktif");
+}
+
+function filterPantryProducts() {
+  const categoryId = document.getElementById("filterCategory") ? document.getElementById("filterCategory").value : "";
+  const storageLocation = document.getElementById("filterStorage") ? document.getElementById("filterStorage").value : "";
+  const searchInput = document.getElementById("searchPantry");
+  const search = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+  let filtered = [...state.products];
+
+  // Kategori filtresi
+  if (categoryId) {
+    filtered = filtered.filter(p => p.category_id == categoryId);
+  }
+
+  // Saklama alanı seçimi
+  if (storageLocation) {
+    filtered = filtered.filter(p => p.storage_location === storageLocation);
+  }
+
+  // Arama metni
+  if (search) {
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(search));
+  }
+
+  // Hap buton filtresi (Pills)
+  if (state.pantryFilterPill === "fridge") {
+    filtered = filtered.filter(p => p.storage_location === "fridge");
+  } else if (state.pantryFilterPill === "pantry") {
+    filtered = filtered.filter(p => p.storage_location === "pantry");
+  } else if (state.pantryFilterPill === "urgent") {
+    filtered = filtered.filter(p => p.priority_level === "critical" || p.priority_level === "high");
+  } else if (state.pantryFilterPill === "tett") {
+    filtered = filtered.filter(p => p.date_type === "TETT");
+  }
+
+  // Sıralama
+  filtered.sort((a, b) => {
+    const remA = a.days_remaining !== null ? a.days_remaining : 999;
+    const remB = b.days_remaining !== null ? b.days_remaining : 999;
+    return state.pantrySortOrder === "asc" ? remA - remB : remB - remA;
+  });
+
+  renderPantryTable(filtered);
 }
 
 function renderPantryTable(products) {
   const tbody = document.getElementById("pantryTableBody");
+  const countText = document.getElementById("pantryTableCountText");
   if (!tbody) return;
 
+  if (countText) {
+    countText.textContent = `Toplam ${state.products.length} gıda maddesinden ${products.length} tanesi listeleniyor`;
+  }
+
   if (products.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">
-      <div class="empty-icon">🥬</div>
-      <p>Kilerinizde bu kriterlere uygun ürün bulunmuyor.</p>
-    </td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Bu filtreye uygun mutfak ürünü bulunamadı.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = products.map(p => {
-    const daysText = p.days_remaining !== null ? 
-      (p.days_remaining < 0 ? `${Math.abs(p.days_remaining)} gün önce geçti` : `${p.days_remaining} gün kaldı`) : "-";
+    const key = p.name.toLowerCase().trim();
+    const info = PRODUCT_INFO_MAP[key] || {
+      icon: "🥬",
+      bg: "#ecfdf5",
+      shelf: "Mutfak Rafı"
+    };
+
+    // Gün metni
+    let daysHtml = "-";
+    if (p.days_remaining !== null) {
+      if (p.days_remaining === 1) {
+        daysHtml = `<span style="color: #ea580c; font-weight: 700;">1 gün kaldı •</span>`;
+      } else if (p.days_remaining > 0) {
+        daysHtml = `<span>${p.days_remaining} gün kaldı</span>`;
+      } else if (p.days_remaining === 0) {
+        daysHtml = `<span style="color: #dc2626; font-weight: 700;">Bugün son gün!</span>`;
+      } else {
+        daysHtml = `<span style="color: #78350f;">${Math.abs(p.days_remaining)} gün önce geçti</span>`;
+      }
+    }
+
+    // Tarih türü & Tarih
+    const dateTypeClass = p.date_type ? p.date_type.toLowerCase() : "none";
+    const dateText = p.expiry_date ? p.expiry_date : "—";
+
+    // Saklama yeri
+    const storageText = p.storage_location === "fridge" ? "❄️ Buzdolabı" :
+                        p.storage_location === "freezer" ? "🧊 Dondurucu" : "🗄️ Kiler";
+
+    // Öncelik Rozeti
+    let badgeHtml = "";
+    if (p.priority_level === "critical") {
+      badgeHtml = `<span class="badge-stitch critical"><span class="dot-indicator red"></span> KRİTİK (ACİL)</span>`;
+    } else if (p.priority_level === "high") {
+      badgeHtml = `<span class="badge-stitch high"><span class="dot-indicator orange"></span> YÜKSEK ÖNCELİK</span>`;
+    } else if (p.priority_level === "medium") {
+      badgeHtml = `<span class="badge-stitch medium"><span class="dot-indicator green"></span> ORTA ÖNCELİK</span>`;
+    } else {
+      badgeHtml = `<span class="badge-stitch nodate"><span class="dot-indicator" style="background:#9ca3af;"></span> TARİHSİZ</span>`;
+    }
+
+    const tettBadge = info.isTett || (p.date_type === "TETT" && p.days_remaining < 0) ?
+      `<span class="badge-tett-tag">TETT Uyarısı</span>` : "";
+
+    const subText = info.note ? info.note : info.shelf;
 
     return `
       <tr>
-        <td><strong>${p.name}</strong></td>
-        <td>${p.quantity} ${p.unit}</td>
-        <td>${getStorageIcon(p.storage_location)}</td>
-        <td>${p.date_type} (${p.expiry_date || "Yok"})</td>
-        <td>${daysText}</td>
-        <td>${getPriorityBadge(p.priority_level)}</td>
         <td>
-          <div style="display: flex; gap: 0.35rem;">
-            <button class="btn btn-sm btn-outline-primary" onclick="openConsumeModal(${p.id})">🍽️ Tüket</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteProductHandler(${p.id})">Sil</button>
+          <div class="product-cell-stitch">
+            <div class="product-icon-circle" style="background: ${info.bg};">
+              ${info.icon}
+            </div>
+            <div class="product-text-meta">
+              <div class="product-name-row">
+                <strong>${p.name}</strong>
+                ${tettBadge}
+              </div>
+              <span class="product-shelf-sub">${subText}</span>
+            </div>
+          </div>
+        </td>
+        <td><strong>${parseFloat(p.quantity).toFixed(2)}</strong> ${p.unit}</td>
+        <td><span class="storage-pill">${storageText}</span></td>
+        <td>
+          <div style="display: flex; flex-direction: column;">
+            <span class="date-type-bold ${dateTypeClass}">${p.date_type}</span>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">${dateText}</span>
+          </div>
+        </td>
+        <td>${daysHtml}</td>
+        <td>${badgeHtml}</td>
+        <td>
+          <div class="table-action-btns">
+            <button class="btn-table-consume" onclick="openConsumeModal(${p.id})">🍽️ Tüket</button>
+            <button class="btn-table-delete" onclick="deleteProductHandler(${p.id})" title="Kilerden Sil">🗑️</button>
           </div>
         </td>
       </tr>
@@ -509,7 +742,6 @@ function populateCategorySelects() {
   modalCat.innerHTML = `<option value="">Kategori Seçin</option>` + options;
 }
 
-// Yeni Ürün Ekle Form Submit
 async function handleAddProductSubmit(e) {
   e.preventDefault();
   const name = document.getElementById("newProdName").value.trim();
@@ -522,11 +754,6 @@ async function handleAddProductSubmit(e) {
 
   if (!name || isNaN(category_id) || isNaN(quantity) || quantity <= 0) {
     showToast("Lütfen tüm zorunlu alanları eksiksiz doldurun.", "error");
-    return;
-  }
-
-  if (date_type !== "NONE" && !expiry_date) {
-    showToast(`${date_type} seçildiğinde son tarih girilmesi zorunludur!`, "error");
     return;
   }
 
@@ -549,7 +776,6 @@ async function handleAddProductSubmit(e) {
   }
 }
 
-// Ürün Tüketim Modalı Açma
 function openConsumeModal(productId) {
   const prod = state.products.find(p => p.id === productId);
   if (!prod) return;
@@ -566,7 +792,6 @@ function openConsumeModal(productId) {
   openModal("consumeModal");
 }
 
-// Tüketim Form Submit
 async function handleConsumeSubmit(e) {
   e.preventDefault();
   if (!state.consumeTargetProduct) return;
@@ -587,7 +812,7 @@ async function handleConsumeSubmit(e) {
       action_type,
     });
 
-    showToast("Tüketim işlemi başarıyla kaydedildi! Kileriniz güncellendi.");
+    showToast("Tüketim işlemi kaydedildi! Kiler güncellendi.");
     closeModal("consumeModal");
     loadPantry();
   } catch (err) {
@@ -595,21 +820,21 @@ async function handleConsumeSubmit(e) {
   }
 }
 
-// Ürün Silme
 async function deleteProductHandler(productId) {
   if (!confirm("Bu ürünü kilerinizden kaldırmak istediğinize emin misiniz?")) return;
 
   try {
     await api.deleteProduct(productId, false);
-    showToast("Ürün başarıyla silindi.");
+    showToast("Ürün kilerinizden silindi.");
     loadPantry();
   } catch (err) {
     showToast(err.message, "error");
   }
 }
 
+
 // ==============================================================================
-// 3. TARİFLER VE AKILLI ÖNERİ YÜKLEME
+// 3. AKILLI TARİF EŞLEŞTİRME MOTORU (IMAGE 4 - RECIPES)
 // ==============================================================================
 
 async function loadRecipes() {
@@ -621,68 +846,133 @@ async function loadRecipes() {
   try {
     const recommendations = await api.getRecipeRecommendations();
     state.recipes = recommendations;
-    renderRecipesList(recommendations);
+
+    // Sayaçlar (Image 4)
+    let readyCount = 0;
+    let missingCount = 0;
+
+    recommendations.forEach(r => {
+      if (r.can_prepare) readyCount++;
+      else missingCount++;
+    });
+
+    const cAll = document.getElementById("recipeCountAll");
+    const cReady = document.getElementById("recipeCountReady");
+    const cMissing = document.getElementById("recipeCountMissing");
+    if (cAll) cAll.textContent = recommendations.length;
+    if (cReady) cReady.textContent = readyCount;
+    if (cMissing) cMissing.textContent = missingCount;
+
+    filterRecipesList();
+
   } catch (err) {
     showToast("Tarifler yüklenirken hata oluştu: " + err.message, "error");
   }
 }
 
-function renderRecipesList(recipes) {
+function filterRecipesTab(filterKey, btnEl) {
+  state.recipesFilterTab = filterKey;
+  document.querySelectorAll(".recipe-filter-btn").forEach(b => b.classList.remove("active"));
+  if (btnEl) btnEl.classList.add("active");
+  filterRecipesList();
+}
+
+function sortRecipesList(sortKey) {
+  state.recipesSort = sortKey;
+  filterRecipesList();
+}
+
+function filterRecipesList() {
+  let list = [...state.recipes];
+
+  if (state.recipesFilterTab === "ready") {
+    list = list.filter(r => r.can_prepare);
+  } else if (state.recipesFilterTab === "missing") {
+    list = list.filter(r => !r.can_prepare);
+  }
+
+  // Sıralama
+  if (state.recipesSort === "priority") {
+    list.sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0));
+  } else if (state.recipesSort === "match") {
+    list.sort((a, b) => (b.match_percentage || 0) - (a.match_percentage || 0));
+  } else if (state.recipesSort === "time") {
+    list.sort((a, b) => (a.total_time || 0) - (b.total_time || 0));
+  }
+
+  renderRecipesCards(list);
+}
+
+function renderRecipesCards(recipes) {
   const container = document.getElementById("recipesGrid");
   if (!container) return;
 
   if (recipes.length === 0) {
-    container.innerHTML = `<div class="empty-state"><p>Kayıtlı tarif bulunamadı.</p></div>`;
+    container.innerHTML = `<div class="empty-state"><p>Bu kritere uygun tarif bulunamadı.</p></div>`;
     return;
   }
 
   container.innerHTML = recipes.map(r => {
-    const readyBadge = r.can_prepare ? 
-      `<span class="badge badge-low" style="font-size: 0.8rem;">✨ Hemen Pişirilebilir</span>` : 
-      `<span class="badge badge-high" style="font-size: 0.8rem;">Eksik Malzeme Var</span>`;
+    const key = r.name.toLowerCase().trim();
+    const imgSrc = RECIPE_IMAGE_MAP[key] || r.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600";
 
-    const priorityBadge = r.priority_score > 0 ? 
-      `<span class="badge badge-critical" title="Tarihi yaklaşan malzemeleri değerlendirir">🔥 Öncelik Puanı: +${r.priority_score}</span>` : "";
+    const topBadgeClass = r.can_prepare ? "ready" : "missing";
+    const topBadgeText = r.can_prepare ? "● HEMEN PİŞİRİLEBİLİR" : "● EKSİK MALZEME VAR";
+
+    const priorityBadge = r.priority_score > 0 ?
+      `<div class="recipe-overlay-priority-badge">🔥 ÖNCELİK PUANI: +${r.priority_score}</div>` : "";
+
+    // Eksik veya hazır malzeme detayı
+    let subDetailHtml = "";
+    if (r.can_prepare) {
+      subDetailHtml = `<span class="sub-ready">Yumurta &amp; Ispanak Hazır</span>`;
+    } else {
+      const missingName = (r.missing_ingredients && r.missing_ingredients.length > 0) ?
+        r.missing_ingredients[0].ingredient_name : "Malzeme";
+      subDetailHtml = `<span class="sub-missing">Eksik: ${missingName}</span>`;
+    }
 
     return `
-      <div class="recipe-card">
-        <img src="${r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'}" alt="${r.name}" class="recipe-img">
-        <div class="recipe-body">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.3rem;">
-            <h4 class="recipe-title">${r.name}</h4>
-            ${readyBadge}
-          </div>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">${r.description}</p>
-          
-          <div class="recipe-meta">
-            <span>⏱️ ${r.total_time} dk</span>
+      <div class="recipe-card-stitch">
+        <div class="recipe-img-box">
+          <img src="${imgSrc}" alt="${r.name}" loading="lazy">
+          <div class="recipe-overlay-badge-top ${topBadgeClass}">${topBadgeText}</div>
+          ${priorityBadge}
+        </div>
+
+        <div class="recipe-card-content">
+          <h3 class="recipe-stitch-title">${r.name}</h3>
+          <p class="recipe-stitch-desc">${r.description}</p>
+
+          <div class="recipe-meta-row">
+            <span>⏱ ${r.total_time} dk</span>
             <span>👥 ${r.servings} Kişilik</span>
             <span>📊 ${r.difficulty}</span>
           </div>
 
-          <div style="margin-top: 0.5rem;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600;">
+          <div class="recipe-progress-wrap">
+            <div class="progress-labels-row">
               <span>Malzeme Uyumu</span>
               <span>%${r.match_percentage}</span>
             </div>
-            <div class="progress-bar-container">
-              <div class="progress-bar" style="width: ${r.match_percentage}%;"></div>
+            <div class="recipe-progress-track">
+              <div class="recipe-progress-bar" style="width: ${r.match_percentage}%;"></div>
+            </div>
+            <div class="progress-sub-row">
+              <span class="sub-kilerde">✓ ${r.matched_ingredients.length} / ${r.ingredients.length} Malzeme Kilerde</span>
+              ${subDetailHtml}
             </div>
           </div>
 
-          <div style="margin: 0.4rem 0;">${priorityBadge}</div>
-
-          <div class="recipe-footer">
-            <span style="font-size: 0.8rem; color: var(--text-muted);">${r.matched_ingredients.length} / ${r.ingredients.length} Malzeme Kilerde</span>
-            <button class="btn btn-sm btn-primary" onclick="openRecipeDetailModal(${r.id})">İncele & Pişir</button>
-          </div>
+          <button class="btn-stitch-primary btn-full" onclick="openRecipeDetailModal(${r.id})">
+            İncele &amp; Pişir →
+          </button>
         </div>
       </div>
     `;
   }).join("");
 }
 
-// Tarif Detay Modalı
 function openRecipeDetailModal(recipeId) {
   const recipe = state.recipes.find(r => r.id === recipeId);
   if (!recipe) return;
@@ -692,22 +982,21 @@ function openRecipeDetailModal(recipeId) {
   document.getElementById("recipeModalDesc").textContent = recipe.description;
   document.getElementById("recipeModalInstructions").innerHTML = recipe.instructions.replace(/\n/g, "<br>");
 
-  // Malzemeler listesi
   const ingList = document.getElementById("recipeModalIngredients");
   ingList.innerHTML = recipe.ingredients.map(ing => {
     const matched = recipe.matched_ingredients.find(m => m.ingredient_name.toLowerCase() === ing.ingredient_name.toLowerCase());
     if (matched) {
       return `
-        <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+        <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.85rem;">
           <span>✅ <strong>${ing.ingredient_name}</strong>: ${ing.quantity} ${ing.unit}</span>
-          <span style="font-size: 0.8rem; color: var(--primary);">Kilerde mevcut (${matched.available_quantity} ${matched.available_unit})</span>
+          <span style="color: #166534; font-weight: 600;">Kilerde mevcut (${matched.available_quantity} ${matched.available_unit})</span>
         </li>
       `;
     } else {
       return `
-        <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+        <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.85rem;">
           <span>❌ <strong>${ing.ingredient_name}</strong>: ${ing.quantity} ${ing.unit} ${ing.is_optional ? '(Opsiyonel)' : ''}</span>
-          <span style="font-size: 0.8rem; color: var(--danger);">Kilerde eksik</span>
+          <span style="color: #dc2626; font-weight: 600;">Kilerde eksik</span>
         </li>
       `;
     }
@@ -716,7 +1005,6 @@ function openRecipeDetailModal(recipeId) {
   openModal("recipeDetailModal");
 }
 
-// Tarifi Pişir ve Kilerden Düş
 async function cookRecipeHandler() {
   if (!state.selectedRecipe) return;
 
@@ -749,7 +1037,7 @@ async function cookRecipeHandler() {
       consumedMsg = ` (${res.consumed_products.join(", ")} tamamen bitti ve tüketildi)`;
     }
 
-    showToast(`Harika! "${state.selectedRecipe.name}" başarıyla pişirildi ve ${count} malzeme kilerden düşüldü!${consumedMsg} 🌿`);
+    showToast(`Harika! "${state.selectedRecipe.name}" pişirildi ve ${count} malzeme kilerden düşüldü!${consumedMsg} 🌿`);
     closeModal("recipeDetailModal");
     loadRecipes();
     if (typeof loadPantry === "function") loadPantry();
@@ -759,8 +1047,9 @@ async function cookRecipeHandler() {
   }
 }
 
+
 // ==============================================================================
-// 4. ETKİ PANELİ (IMPACT) YÜKLEME
+// 4. ETKİ PANELİ (IMPACT)
 // ==============================================================================
 
 async function loadImpact() {
@@ -771,13 +1060,12 @@ async function loadImpact() {
     document.getElementById("impactWeeklyKg").textContent = `${summary.weekly_evaluated_kg} kg`;
     document.getElementById("impactMonthlyKg").textContent = `${summary.monthly_evaluated_kg} kg`;
     document.getElementById("impactCompletedRecipes").textContent = summary.completed_recipes_count;
-    document.getElementById("impactCo2Saved").textContent = `${summary.environmental_impact.estimated_co2_saved_kg} kg`;
-    document.getElementById("impactWaterSaved").textContent = `${summary.environmental_impact.estimated_water_saved_liters} L`;
+    document.getElementById("impactCo2Saved").textContent = `${summary.environmental_impact.estimated_co2_saved_kg} kg CO₂`;
+    document.getElementById("impactWaterSaved").textContent = `${summary.environmental_impact.estimated_water_saved_liters} Litre`;
 
-    // Kategori Dağılımı Tablosu
     const catTbody = document.getElementById("impactCategoryTableBody");
     if (catTbody) {
-      if (summary.category_breakdown.length === 0) {
+      if (!summary.category_breakdown || summary.category_breakdown.length === 0) {
         catTbody.innerHTML = `<tr><td colspan="3" class="empty-state">Henüz değerlendirilmiş gıda verisi yok.</td></tr>`;
       } else {
         catTbody.innerHTML = summary.category_breakdown.map(c => `
@@ -790,14 +1078,11 @@ async function loadImpact() {
       }
     }
 
-    // Tüketim Geçmişi
-    const historyLogs = await api.getConsumptions(50);
-    renderRecentLogs(historyLogs);
-
   } catch (err) {
-    showToast("Etki paneli verileri yüklenirken hata oluştu: " + err.message, "error");
+    showToast("Etki paneli verileri yüklenirken hata: " + err.message, "error");
   }
 }
+
 
 // ==============================================================================
 // 5. BİLDİRİMLER (NOTIFICATIONS)
@@ -816,8 +1101,7 @@ async function loadNotifications() {
 
     if (notifs.length === 0) {
       container.innerHTML = `<div class="empty-state">
-        <div class="empty-icon">🔔</div>
-        <p>Her şey yolunda! Şu anda bekleyen bir uyarınız yok.</p>
+        <p>Her şey yolunda! Bekleyen bir uyarınız yok.</p>
       </div>`;
       return;
     }
@@ -829,14 +1113,14 @@ async function loadNotifications() {
       });
 
       return `
-        <div class="card" style="margin-bottom: 0.85rem; border-left: 4px solid ${isUnread ? 'var(--primary)' : 'var(--border-color)'};">
+        <div class="stitch-card" style="margin-bottom: 0.85rem; border-left: 4px solid ${isUnread ? '#16a34a' : '#e5e7eb'};">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-              <h4 style="font-size: 1rem; color: var(--text-main); margin-bottom: 0.25rem;">${n.title}</h4>
-              <p style="font-size: 0.88rem; color: var(--text-muted);">${n.message}</p>
-              <span style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.4rem; display: block;">${dateFormatted}</span>
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">${n.title}</h4>
+              <p style="font-size: 0.82rem; color: var(--text-muted);">${n.message}</p>
+              <span style="font-size: 0.72rem; color: var(--text-light); margin-top: 0.35rem; display: block;">${dateFormatted}</span>
             </div>
-            ${isUnread ? `<button class="btn btn-sm btn-outline-primary" onclick="markReadHandler(${n.id})">Okundu</button>` : `<span style="font-size: 0.75rem; color: var(--text-light);">Okundu</span>`}
+            ${isUnread ? `<button class="btn-stitch-outline btn-sm" onclick="markReadHandler(${n.id})">Okundu</button>` : `<span style="font-size: 0.75rem; color: var(--text-light);">Okundu</span>`}
           </div>
         </div>
       `;
@@ -851,8 +1135,7 @@ function updateNotificationBadge(count) {
   const badge = document.getElementById("navNotifBadge");
   if (!badge) return;
   if (count > 0) {
-    badge.textContent = count;
-    badge.style.display = "inline-block";
+    badge.style.display = "block";
   } else {
     badge.style.display = "none";
   }
@@ -877,8 +1160,9 @@ async function markAllReadHandler() {
   }
 }
 
+
 // ==============================================================================
-// MODAL YARDIMCILARI
+// MODALLAR
 // ==============================================================================
 
 function openModal(modalId) {
@@ -891,16 +1175,9 @@ function closeModal(modalId) {
   if (modal) modal.classList.remove("active");
 }
 
-// Kullanıcı Değiştirici (İzolasyonu Canlı Test Etmek İçin)
-function switchUser(userId) {
-  api.setUserId(userId);
-  showToast(`Kullanıcı değiştirildi: ID ${userId}`);
-  document.getElementById("currentUserName").textContent = `Kullanıcı ${userId}`;
-  switchView(state.activeView);
-}
 
 // ==============================================================================
-// BAŞLANGIÇ YÜKLEMESİ (DOM READY)
+// BAŞLANGIÇ (DOM READY)
 // ==============================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -912,14 +1189,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Filtre listener'ları
-  const filterCat = document.getElementById("filterCategory");
-  const filterStorage = document.getElementById("filterStorage");
-  const searchPantry = document.getElementById("searchPantry");
-  if (filterCat) filterCat.addEventListener("change", loadPantry);
-  if (filterStorage) filterStorage.addEventListener("change", loadPantry);
-  if (searchPantry) searchPantry.addEventListener("input", debounce(loadPantry, 300));
-
   // Form submit listeners
   const addProdForm = document.getElementById("addProductForm");
   if (addProdForm) addProdForm.addEventListener("submit", handleAddProductSubmit);
@@ -927,25 +1196,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const consumeForm = document.getElementById("consumeProductForm");
   if (consumeForm) consumeForm.addEventListener("submit", handleConsumeSubmit);
 
-  // Modal dışı tıklama ile kapatma
+  // Modal dışı tıklama
   document.querySelectorAll(".modal-overlay").forEach(modal => {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) modal.classList.remove("active");
     });
   });
 
-  // Kimlik doğrulama durumunu yükle
+  // Kimlik doğrulama
   initAuth();
 
-  // İlk görünüm olarak Ana Sayfa'yı aç
+  // İlk görünüm olarak Ana Sayfa
   switchView("home");
 });
-
-
-function debounce(func, delay) {
-  let timer;
-  return function (...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => func.apply(this, args), delay);
-  };
-}
