@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/chat.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.2.0">
+  <link rel="stylesheet" href="/static/css/chat.css?v=2.2.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
 </head>
 <body>
@@ -71,9 +71,9 @@
             <span class="notif-badge-dot" id="navNotifBadge" style="display: none;"></span>
           </button>
 
-          <div class="nav-user-profile">
-            <div class="user-avatar-circle" id="navUserAvatar">
-              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Defne Ece" id="navUserImg">
+          <div class="nav-user-profile" style="display: flex; align-items: center; gap: 8px;">
+            <div class="user-avatar-circle" id="navUserAvatar" style="width: 34px; height: 34px; min-width: 34px; max-width: 34px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Defne Ece" id="navUserImg" width="34" height="34" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%;">
             </div>
             <div class="user-profile-names">
               <span class="user-full-name" id="navUserFullName">Defne Ece</span>
@@ -179,7 +179,7 @@
             <div id="authLoginPane">
               <div id="loginAlert" class="auth-alert"></div>
 
-              <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+              <form id="loginForm" onsubmit="handleLoginSubmit(event); return false;">
                 <div class="form-stitch-group">
                   <label for="loginUsername">Kullanıcı Adı veya E-posta</label>
                   <input type="text" id="loginUsername" placeholder="demo_user" value="demo_user" required autocomplete="username">
@@ -220,7 +220,7 @@
             <div id="authRegisterPane" style="display: none;">
               <div id="registerAlert" class="auth-alert"></div>
 
-              <form id="registerForm" onsubmit="handleRegisterSubmit(event)">
+              <form id="registerForm" onsubmit="handleRegisterSubmit(event); return false;">
                 <div class="form-stitch-group">
                   <label for="regUsername">Kullanıcı Adı</label>
                   <input type="text" id="regUsername" placeholder="En az 3 karakter" minlength="3" required autocomplete="username">
@@ -947,16 +947,16 @@
           </div>
 
           <div class="suggestions-bar" id="suggestionsBar">
-            <button type="button" class="suggestion-chip" data-question="Bugün ne tüketmeliyim?" onclick="handleChipClick(this)">
+            <button type="button" class="suggestion-chip" data-question="Bugün ne tüketmeliyim?">
               ⏱️ Bugün ne tüketmeliyim?
             </button>
-            <button type="button" class="suggestion-chip" data-question="Ispanakla ne yapabilirim?" onclick="handleChipClick(this)">
+            <button type="button" class="suggestion-chip" data-question="Ispanakla ne yapabilirim?">
               🥬 Ispanakla ne yapabilirim?
             </button>
-            <button type="button" class="suggestion-chip" data-question="Bu ay ne kadar gıda kurtardım?" onclick="handleChipClick(this)">
+            <button type="button" class="suggestion-chip" data-question="Bu ay ne kadar gıda kurtardım?">
               📊 Bu ay ne kadar gıda kurtardım?
             </button>
-            <button type="button" class="suggestion-chip" data-question="Ambalajları nasıl ayırayım?" onclick="handleChipClick(this)">
+            <button type="button" class="suggestion-chip" data-question="Ambalajları nasıl ayırayım?">
               ♻️ Ambalajları nasıl ayırayım?
             </button>
           </div>
@@ -970,7 +970,7 @@
                 placeholder="Bir soru sorun... (örn: Bugün mutfağımda ne pişirebilirim?)"
                 autocomplete="off"
               ></textarea>
-              <button type="button" id="chatSendBtn" class="chat-send-btn" title="Gönder" onclick="handleChatSubmit(event)">
+              <button type="submit" id="chatSendBtn" class="chat-send-btn" title="Gönder">
                 <span>Gönder</span>
                 <span>➤</span>
               </button>
@@ -1012,7 +1012,7 @@
         <h3>+ Kilerime Yeni Ürün Ekle</h3>
         <button class="modal-close" onclick="closeModal('addProductModal')">&times;</button>
       </div>
-      <form id="addProductForm">
+      <form id="addProductForm" onsubmit="handleAddProductSubmit(event); return false;">
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Ürün Adı *</label>
@@ -1086,7 +1086,7 @@
         <h3>🍽️ Gıda Tüketimi Kaydet</h3>
         <button class="modal-close" onclick="closeModal('consumeModal')">&times;</button>
       </div>
-      <form id="consumeProductForm">
+      <form id="consumeProductForm" onsubmit="handleConsumeSubmit(event); return false;">
         <div class="modal-body">
           <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
             Ürün: <strong id="consumeProdName" style="color: var(--primary-forest);"></strong><br>
@@ -1149,8 +1149,8 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- SCRIPTS -->
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/app.js"></script>
-  <script src="/static/js/chat.js"></script>
+  <script src="/static/js/api.js?v=2.2.0"></script>
+  <script src="/static/js/app.js?v=2.2.0"></script>
+  <script src="/static/js/chat.js?v=2.2.2"></script>
 </body>
 </html>

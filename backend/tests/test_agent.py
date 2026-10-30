@@ -300,3 +300,60 @@ def test_search_recipes_kullanicida_var_flag(db_session):
     assert turkish_match("ispanak", "Ispanak") is True
     assert turkish_match("ıspanak", "Ispanak") is True
     assert turkish_match("incir", "İncir") is True
+
+
+# ==============================================================================
+# 9. search_recipes dish_name BELİRLİ YEMEK ARAMA TESTLERİ
+# ==============================================================================
+
+def test_search_recipes_dish_name_found_in_db(db_session):
+    """
+    (a) DB'de olan bir yemek adı verildiğinde:
+    - veritabaninda_var == True döner
+    - tarif['kaynak'] == 'veritabani' döner
+    - Sadece o tarif döner
+    """
+    from app.agents.tools.recipes import search_recipes
+
+    # 'Menemen' seed verisinde mevcut
+    res = search_recipes(db=db_session, user_id=1, dish_name="menemen")
+    assert res["istenen_yemek"] == "menemen"
+    assert res["veritabaninda_var"] is True
+    assert "tarif" in res
+    assert res["tarif"]["kaynak"] == "veritabani"
+    assert "menemen" in res["tarif"]["tarif_adi"].lower()
+    assert "kilerdeki_malzemeler" in res["tarif"]
+    assert "eksik_malzemeler" in res["tarif"]
+    assert "toplam_sure_dakika" in res["tarif"]
+
+
+def test_search_recipes_dish_name_not_found_in_db(db_session):
+    """
+    (b) DB'de olmayan bir yemek adı verildiğinde:
+    - veritabaninda_var == False döner
+    - sonuçta hiç tarif dönmez (tarif veya tarifler alanı bulunmaz)
+    - asistan önerisi için talimat metni döner
+    """
+    from app.agents.tools.recipes import search_recipes
+
+    res = search_recipes(db=db_session, user_id=1, dish_name="Ejderha Çorbası ve Avokadolu Sushi")
+    assert res["istenen_yemek"] == "Ejderha Çorbası ve Avokadolu Sushi"
+    assert res["veritabaninda_var"] is False
+    assert "tarif" not in res
+    assert "tarifler" not in res
+    assert "talimat" in res
+    assert "Bu yemek veritabanında yok. Başka tarif önerme." in res["talimat"]
+    assert "💡 Asistan önerisi" in res["talimat"]
+
+
+def test_search_recipes_open_ended_kaynak_field(db_session):
+    """
+    (c) dish_name verilmediğinde açık uçlu mod:
+    - Dönen her tarifte 'kaynak': 'veritabani' alanı bulunur.
+    """
+    from app.agents.tools.recipes import search_recipes
+
+    res = search_recipes(db=db_session, user_id=1)
+    assert len(res["tarifler"]) > 0
+    for t in res["tarifler"]:
+        assert t["kaynak"] == "veritabani"

@@ -208,30 +208,6 @@ function setLoading(isLoading) {
 }
 
 // ==============================================================================
-// 5. API İLETİŞİMİ
-// ==============================================================================
-
-/**
- * Kullanıcının mesajını POST /api/chat uç noktasına gönderir ve yanıtı ekrana yansıtır.
- *
- * @param {string} rawMessage - Kullanıcının yazdığı metin
- */
-async function handleSendMessage(rawMessage) {
-  const message = (rawMessage || "").trim();
-  // Kural 5: Boş veya yalnızca boşluklardan oluşan mesajlar engellenir
-  if (!message) return;
-
-  // Kullanıcı mesajını hemen ekrana yazdır
-  appendMessage("user", message);
-
-  // Giriş alanını temizle ve yüksekliğini sıfırla
-  const textarea = document.getElementById("chatInput");
-  if (textarea) {
-    textarea.value = "";
-    textarea.style.height = "auto";
-  }
-
-// ==============================================================================
 // 4.5 YEREL AKILLI ASİSTAN MOTORU (FALLBACK)
 // ==============================================================================
 
@@ -403,15 +379,23 @@ async function getLocalAssistantFallback(rawMessage) {
 // 5. API İLETİŞİMİ
 // ==============================================================================
 
+// Çift gönderimi ve mükerrer istekleri engellemek için kilit bayrağı
+let isSending = false;
+
 /**
  * Kullanıcının mesajını POST /api/chat uç noktasına gönderir ve yanıtı ekrana yansıtır.
  *
  * @param {string} rawMessage - Kullanıcının yazdığı metin
  */
 async function handleSendMessage(rawMessage) {
+  // Gönderim devam ediyorsa ikinci isteği kesinlikle engelle
+  if (isSending) return;
+
   const message = (rawMessage || "").trim();
   // Kural 5: Boş veya yalnızca boşluklardan oluşan mesajlar engellenir
   if (!message) return;
+
+  isSending = true;
 
   // Kullanıcı mesajını hemen ekrana yazdır
   appendMessage("user", message);
@@ -471,15 +455,18 @@ async function handleSendMessage(rawMessage) {
     const fallbackResult = await getLocalAssistantFallback(message);
     appendMessage("assistant", fallbackResult.answer, fallbackResult.tools || []);
   } finally {
+    isSending = false;
     setLoading(false);
   }
 }
 
-// Global olarak erişilebilir form gönderme işlevi (Sayfanın reload olmasını %100 engeller)
+// Global olarak erişilebilir form gönderme işlevi (Sayfanın reload olmasını ve çift tıklamayı %100 engeller)
 window.handleChatSubmit = function(event) {
-  if (event && event.preventDefault) {
-    event.preventDefault();
+  if (event) {
+    if (event.preventDefault) event.preventDefault();
+    if (event.stopPropagation) event.stopPropagation();
   }
+  if (isSending) return false;
   const chatInput = document.getElementById("chatInput");
   if (chatInput) {
     handleSendMessage(chatInput.value);
@@ -488,7 +475,12 @@ window.handleChatSubmit = function(event) {
 };
 
 // Global hazır soru çipi tıklama işlevi
-window.handleChipClick = function(chipOrText) {
+window.handleChipClick = function(chipOrText, event) {
+  if (event) {
+    if (event.preventDefault) event.preventDefault();
+    if (event.stopPropagation) event.stopPropagation();
+  }
+  if (isSending) return false;
   let text = "";
   if (typeof chipOrText === "string") {
     text = chipOrText;
@@ -498,6 +490,7 @@ window.handleChipClick = function(chipOrText) {
   if (text) {
     handleSendMessage(text);
   }
+  return false;
 };
 
 // ==============================================================================

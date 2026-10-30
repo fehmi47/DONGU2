@@ -49,32 +49,43 @@ def turkish_match(query: str, target: str) -> bool:
 @register(
     name="search_recipes",
     description=(
-        # 1) Ne döner: alanlar ve ANLAMLARI. LLM'in yanlış yorumlamasını burada engelliyoruz.
-        "Veritabanındaki tarifleri kullanıcının mutfağıyla eşleştirip en fazla 5 tarif döner. "
-        "Bozulmak üzere olan ürünleri kullanan tarifler üsttedir. Her tarifte: ad, eşleşme oranı, "
-        "süre, 'eldeki_malzemeler' (kullanıcıda olanlar) ve 'eksik_malzemeler' (kullanıcıda OLMAYANLAR) bulunur. "
+        # 1) İki çalışma modu var: LLM hangisini ne zaman kullanacağını buradan öğrenir
+        "Veritabanındaki tarifleri kullanıcının mutfağıyla eşleştirir. İki modu vardır: "
+        "(A) AÇIK UÇLU mod: 'ne pişirebilirim', 'domatesle ne yapabilirim' gibi sorularda dish_name VERME; "
+        "en fazla 5 tarif döner, bozulmak üzere olan ürünleri kullananlar üsttedir. "
+        "(B) BELİRLİ YEMEK modu: kullanıcı belirli bir yemek isterse ('menemen yapalım', "
+        "'domatesli biber salatası tarifi') dish_name ver; sadece o yemeği arar. "
+        # 2) Dönen alanların anlamı
+        "Her tarifte: ad, eşleşme oranı, süre, 'eldeki_malzemeler' (kullanıcıda olanlar), "
+        "'eksik_malzemeler' (kullanıcıda OLMAYANLAR) ve 'kaynak': 'veritabani' bulunur. "
         "Bir malzeme ya eldeki ya da eksik listesindedir, ikisinde birden olamaz. "
-        # 2) Özel alanın davranışı: alanı söylemek yetmez, ne yapılacağını da söyle
-        "Filtre kullanıldığında 'kullanicida_var' alanı döner. Değer false ise cevabına "
-        "o malzemenin mutfakta olmadığını söyleyerek başla. "
-        # 3) Ne zaman çağrılır
-        "Şu durumlarda çağır: ne pişirebilirim; belirli bir malzemeyle ne yapılır; tarif önerisi. "
-        # 4) Ne yapmaz: AI tarifleri bu araçtan gelmez, sınır net olsun
-        "Bu araç sadece kayıtlı tarifleri döner; yeni tarif üretmez. "
-        "Sonuç boşsa bunu kısaca belirt; ardından asistan önerisi yapılabilir."
+        # 3) Özel alanların davranışı: alanı söylemek yetmez, ne yapılacağını da söyle
+        "'kullanicida_var' false ise cevabına o malzemenin mutfakta olmadığını söyleyerek başla. "
+        "'veritabaninda_var' false ise araçtan gelen 'talimat' alanına BİREBİR uy. "
+        # 4) Etiket kuralı: veriye bağlı, LLM'in yorumuna değil
+        "'kaynak': 'veritabani' olan tariflere ASLA '💡 Asistan önerisi' etiketi koyma. "
+        # 5) Ne yapmaz
+        "Bu araç yeni tarif üretmez ve stokta değişiklik yapmaz."
     ),
     parameters={
         "type": "object",
         "properties": {
             "ingredient": {
                 "type": "string",
-                # Parametre açıklaması da bir prompt'tur: format kurallarını burada ver
+                # Sadece açık uçlu modda kullanılır
                 "description": (
-                    "Opsiyonel. TEK bir malzemenin yalın, ek almamış hali, küçük harfle "
+                    "Opsiyonel, sadece AÇIK UÇLU modda. TEK bir malzemenin yalın, ek almamış hali, küçük harfle "
                     "('domateslerle' değil 'domates', 'ıspanağım' değil 'ıspanak'). "
                     "Kullanıcı birden fazla malzeme sayarsa en acil olanı gönder ya da filtresiz çağır."
                 ),
-            }
+            },
+            "dish_name": {
+                "type": "string",
+                "description": (
+                    "Opsiyonel, sadece BELİRLİ YEMEK modunda. Kullanıcının istediği yemeğin yalın adı, küçük harfle "
+                    "('menemeni' değil 'menemen'). Açık uçlu sorularda bu parametreyi KULLANMA."
+                ),
+            },
         },
         "required": [],
     },
@@ -83,17 +94,93 @@ def search_recipes(
     db: Session,
     user_id: int,
     ingredient: Optional[str] = None,
+    dish_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Kullanıcının kilerindeki malzemelere göre eşleşen tarifleri getirir.
     
     Kurallar:
-    - En fazla 5 tarif döndürülür.
-    - 'ingredient' parametresi verildiğinde kullanıcının aktif kilerinde bu malzemenin
-      olup olmadığı kontrol edilir ve 'kullanicida_var': True/False alanı eklenir.
-    - 'eksik_malzemeler' listesi kesinlikle yalnızca kilerde bulunmayan veya yetersiz olan malzemeleri içerir.
+    - dish_name verildiğinde:
+      - Veritabanındaki tarif adlarında turkish_lower ile arama yapılır.
+      - BULUNURSA: Yalnızca o tarif 'kaynak': 'veritabani' bilgisiyle dönülür.
+      - BULUNMAZSA: Başka hiçbir tarif dönülmez, 'veritabaninda_var': False ve asistan tarif üretme talimatı dönülür.
+    - dish_name verilmediğinde (açık uçlu mod):
+      - En fazla 5 tarif döndürülür, her birine 'kaynak': 'veritabani' eklenir.
+      - 'ingredient' parametresi verildiğinde kullanıcının aktif kilerinde bu malzemenin
+        olup olmadığı kontrol edilir ve 'kullanicida_var': True/False alanı eklenir.
+      - 'eksik_malzemeler' listesi kesinlikle yalnızca kilerde bulunmayan veya yetersiz olan malzemeleri içerir.
     """
     recommendations = match_user_products_with_recipes(db=db, user_id=user_id)
+
+    # 1. BELİRLİ YEMEK MODU (dish_name verildiğinde)
+    if dish_name and dish_name.strip():
+        cleaned_dish = dish_name.strip()
+        dish_lower = turkish_lower(cleaned_dish)
+
+        # Veritabanındaki tarif adlarında turkish_lower ile ara:
+        # tam eşleşme veya tarif adı dish_name'i içeriyorsa / dish_name tarif adını içeriyorsa
+        matched_rec = None
+        for rec in recommendations:
+            rec_lower = turkish_lower(rec.name)
+            if rec_lower == dish_lower:
+                matched_rec = rec
+                break
+        if not matched_rec:
+            for rec in recommendations:
+                rec_lower = turkish_lower(rec.name)
+                if rec_lower in dish_lower or dish_lower in rec_lower:
+                    matched_rec = rec
+                    break
+
+        if matched_rec:
+            kilerdeki_malzemeler = [
+                m.ingredient_name for m in matched_rec.matched_ingredients if m.is_sufficient
+            ]
+            yetersiz_malzemeler = [
+                f"{m.ingredient_name} (yetersiz miktar)"
+                for m in matched_rec.matched_ingredients
+                if not m.is_sufficient and not getattr(m, "is_optional", False)
+            ]
+            hic_olmayanlar = [
+                m.ingredient_name for m in matched_rec.missing_ingredients if not m.is_optional
+            ]
+            eksik_malzemeler = hic_olmayanlar + yetersiz_malzemeler
+            opsiyonel_eksikler = [
+                m.ingredient_name for m in matched_rec.missing_ingredients if m.is_optional
+            ]
+
+            return {
+                "istenen_yemek": cleaned_dish,
+                "veritabaninda_var": True,
+                "tarif": {
+                    "id": matched_rec.id,
+                    "tarif_adi": matched_rec.name,
+                    "eslesme_yuzdesi": float(matched_rec.match_percentage),
+                    "pisirilebilir_mi": bool(matched_rec.can_prepare),
+                    "toplam_sure_dakika": int(matched_rec.total_time),
+                    "oncelik_puani": float(matched_rec.priority_score),
+                    "kilerdeki_malzemeler": kilerdeki_malzemeler,
+                    "eksik_malzemeler": eksik_malzemeler,
+                    "opsiyonel_eksikler": opsiyonel_eksikler,
+                    "kaynak": "veritabani",
+                },
+            }
+        else:
+            return {
+                "istenen_yemek": cleaned_dish,
+                "veritabaninda_var": False,
+                "talimat": (
+                    f"'{cleaned_dish}' veritabanında yok. Başka tarif önerme. Bu yemeğin tarifini SEN oluştur "
+                    "ve TAM OLARAK şu formatı kullan:\n"
+                    "💡 Asistan önerisi: <Yemek adı>\n"
+                    "(Bu tarif veritabanımızda kayıtlı değil, asistan tarafından oluşturuldu.)\n"
+                    "**Malzemeler (<kişi sayısı> kişilik):** önce mutfaktakiler, miktarlarıyla\n"
+                    "**Eksik:** mutfakta olmayanlar (yoksa bu satırı yazma)\n"
+                    "**Yapılışı:** numaralı adımlar\n"
+                    "**Süre:** yaklaşık <dakika>\n"
+                    "Son satır: Yaptıktan sonra kullandığın miktarları Mutfağım ekranından kaydetmeyi unutma!"
+                ),
+            }
 
     kullanicida_var: Optional[bool] = None
 
@@ -159,6 +246,7 @@ def search_recipes(
             "kilerdeki_malzemeler": kilerdeki_malzemeler,
             "eksik_malzemeler": eksik_malzemeler,
             "opsiyonel_eksikler": opsiyonel_eksikler,
+            "kaynak": "veritabani",
         })
 
     bilgi_notu = None

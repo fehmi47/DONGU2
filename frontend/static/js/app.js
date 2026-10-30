@@ -106,7 +106,7 @@ function updateAuthUI() {
     // Oturum açık
     if (mainNavLinks) mainNavLinks.style.display = "flex";
     if (navGuestBox) navGuestBox.style.display = "none";
-    if (navUserBadge) navUserBadge.style.display = "inline-flex";
+    if (navUserBadge) navUserBadge.style.display = "flex";
 
     const displayName = user.username === "demo_user" ? "Defne Ece" :
                         user.username === "ayse_kaya" ? "Ayşe Kaya" :

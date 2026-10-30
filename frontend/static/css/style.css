@@ -202,6 +202,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  flex-shrink: 0;
+  max-height: 48px;
 }
 
 .nav-pill-status {
@@ -265,6 +267,8 @@ body {
 .user-avatar-circle {
   width: 34px;
   height: 34px;
+  min-width: 34px;
+  max-width: 34px;
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid var(--border-medium);
@@ -272,6 +276,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .user-avatar-circle img {

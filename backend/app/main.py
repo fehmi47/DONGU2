@@ -90,37 +90,43 @@ app.include_router(chat_router)
 
 
 # ==============================================================================
-# FRONTEND SAYFA ROTALARI
+# FRONTEND SAYFA ROTALARI (SPA)
 # ==============================================================================
+
+def _serve_spa():
+    """DÖNGÜ tek sayfa arayüzünü (SPA) doğru UTF-8 başlıkları ve no-cache ile döner."""
+    return FileResponse(
+        INDEX_HTML,
+        media_type="text/html; charset=utf-8",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+    )
 
 @app.get("/", tags=["Arayüz"], summary="Ana Sayfa (Landing & Giriş)")
 @app.get("/home", tags=["Arayüz"], summary="Ana Sayfa")
 @app.get("/login", tags=["Arayüz"], summary="Giriş Sayfası")
 @app.get("/register", tags=["Arayüz"], summary="Kayıt Sayfası")
 def serve_home():
-    """DÖNGÜ tek sayfa arayüzünü (SPA) döner."""
-    return FileResponse(INDEX_HTML)
-
-
+    return _serve_spa()
 
 @app.get("/pantry", tags=["Arayüz"], summary="Mutfağım Sayfası")
 def serve_pantry():
-    return FileResponse(INDEX_HTML)
-
+    return _serve_spa()
 
 @app.get("/recipes-view", tags=["Arayüz"], summary="Tarifler Sayfası")
 def serve_recipes():
-    return FileResponse(INDEX_HTML)
-
+    return _serve_spa()
 
 @app.get("/impact", tags=["Arayüz"], summary="Etki Paneli Sayfası")
 def serve_impact():
-    return FileResponse(INDEX_HTML)
-
+    return _serve_spa()
 
 @app.get("/notifications-view", tags=["Arayüz"], summary="Bildirimler Sayfası")
 def serve_notifications():
-    return FileResponse(INDEX_HTML)
+    return _serve_spa()
+
+@app.get("/chat-view", tags=["Arayüz"], summary="Asistan Sohbet Sayfası")
+def serve_chat():
+    return _serve_spa()
 
 
 @app.get("/health", tags=["Sistem"])
