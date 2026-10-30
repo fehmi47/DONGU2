@@ -117,51 +117,59 @@
 }
 
 .message-avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
-  background: var(--primary-surface);
-  border: 1px solid var(--border-color);
+  background: var(--primary-surface, #f0fdf4);
+  border: 1px solid var(--border-color, #e5e7eb);
 }
 
 .message-row.user .message-avatar {
-  background: var(--primary);
-  color: #ffffff;
+  background: var(--primary, #1e392a) !important;
+  color: #ffffff !important;
+  border-color: var(--primary, #1e392a) !important;
 }
 
 /* Mesaj Baloncuğu */
 .message-bubble {
-  padding: 0.85rem 1.1rem;
-  border-radius: var(--radius-md);
+  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius-md, 12px);
   font-size: 0.95rem;
   line-height: 1.55;
   word-break: break-word;
   position: relative;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
 }
 
 .message-row.user .message-bubble {
-  background: var(--primary);
-  color: #ffffff;
-  border-bottom-right-radius: 2px;
+  background: var(--primary, #1e392a) !important;
+  color: #ffffff !important;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 5px rgba(30, 57, 42, 0.18);
+}
+
+.message-row.user .message-bubble * {
+  color: #ffffff !important;
 }
 
 .message-row.assistant .message-bubble {
-  background: var(--bg-card);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  border-bottom-left-radius: 2px;
+  background: var(--bg-card, #ffffff);
+  color: var(--text-main, #111827);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .message-row.error .message-bubble {
-  background: var(--danger-surface);
-  color: var(--danger);
-  border: 1px solid rgba(211, 47, 47, 0.3);
+  background: var(--danger-surface, #fef2f2);
+  color: #991b1b;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-bottom-left-radius: 4px;
 }
 
 .message-bubble strong {
@@ -174,6 +182,18 @@
   margin-top: 0.4rem;
   opacity: 0.75;
   text-align: right;
+}
+
+.message-row.user .message-time {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.message-row.assistant .message-time {
+  color: var(--text-muted, #6b7280);
+}
+
+.message-row.error .message-time {
+  color: #991b1b;
 }
 
 /* Araç Rozetleri (Tool Badges) */

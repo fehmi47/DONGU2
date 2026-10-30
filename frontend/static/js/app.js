@@ -284,10 +284,22 @@ function showToast(message, type = "success") {
   const container = document.getElementById("toastContainer");
   if (!container) return;
 
+  // Aşırı toast birikmesini ve aynı hata mesajının üst üste tekrarlanmasını önle
+  const existingToasts = container.querySelectorAll(".toast");
+  for (const existing of existingToasts) {
+    if (existing.textContent.includes(message)) {
+      return; // Zaten ekranda gösterilen aynı mesajı tekrar ekleme
+    }
+  }
+
+  if (existingToasts.length >= 3) {
+    existingToasts[0].remove();
+  }
+
   const toast = document.createElement("div");
   toast.className = `toast ${type === "error" ? "error" : ""}`;
   const icon = type === "success" ? "✅" : type === "error" ? "❌" : "ℹ️";
-  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  toast.innerHTML = `<span>${icon}</span> <span style="flex: 1;">${message}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -366,19 +378,20 @@ async function loadDashboard() {
     // Çevresel Kazanımlar
     const co2El = document.getElementById("dashCo2Saved");
     const waterEl = document.getElementById("dashWaterSaved");
-    if (co2El) co2El.innerHTML = `${data.environmental_impact.estimated_co2_saved_kg} <span class="val-unit">kg</span>`;
-    if (waterEl) waterEl.innerHTML = `${data.environmental_impact.estimated_water_saved_liters} <span class="val-unit">L</span>`;
+    const co2Val = data.environmental_impact ? (data.environmental_impact.estimated_co2_saved_kg || 0) : 0;
+    const waterVal = data.environmental_impact ? (data.environmental_impact.estimated_water_saved_liters || 0) : 0;
+
+    if (co2El) co2El.innerHTML = `${co2Val} <span class="val-unit">kg</span>`;
+    if (waterEl) waterEl.innerHTML = `${Math.round(waterVal)} <span class="val-unit">L</span>`;
 
     // Eşdeğerlikler
-    const co2Val = data.environmental_impact.estimated_co2_saved_kg || 0;
-    const waterVal = data.environmental_impact.estimated_water_saved_liters || 0;
     const kmEquiv = Math.round(co2Val * 5.0);
     const dayEquiv = Math.round(waterVal / 150);
 
     const co2EqEl = document.getElementById("dashCo2Equiv");
     const waterEqEl = document.getElementById("dashWaterEquiv");
-    if (co2EqEl) co2EqEl.textContent = `~${kmEquiv > 0 ? kmEquiv : 68} km araç sürüşüne denk`;
-    if (waterEqEl) waterEqEl.textContent = `~${dayEquiv > 0 ? dayEquiv : 32} günlük bireysel su tüketimi`;
+    if (co2EqEl) co2EqEl.textContent = co2Val > 0 ? `~${kmEquiv} km araç sürüşüne denk` : `~0 km araç sürüşüne denk`;
+    if (waterEqEl) waterEqEl.textContent = waterVal > 0 ? `~${dayEquiv} günlük bireysel su tüketimi` : `~0 günlük bireysel su tüketimi`;
 
     // Haftalık Trend Çubukları
     renderWeeklyChart(data.weekly_stats);
@@ -1060,8 +1073,10 @@ async function loadImpact() {
     document.getElementById("impactWeeklyKg").textContent = `${summary.weekly_evaluated_kg} kg`;
     document.getElementById("impactMonthlyKg").textContent = `${summary.monthly_evaluated_kg} kg`;
     document.getElementById("impactCompletedRecipes").textContent = summary.completed_recipes_count;
-    document.getElementById("impactCo2Saved").textContent = `${summary.environmental_impact.estimated_co2_saved_kg} kg CO₂`;
-    document.getElementById("impactWaterSaved").textContent = `${summary.environmental_impact.estimated_water_saved_liters} Litre`;
+    const co2Val = summary.environmental_impact ? summary.environmental_impact.estimated_co2_saved_kg : 0;
+    const waterVal = summary.environmental_impact ? Math.round(summary.environmental_impact.estimated_water_saved_liters) : 0;
+    document.getElementById("impactCo2Saved").textContent = `${co2Val} kg CO₂`;
+    document.getElementById("impactWaterSaved").textContent = `${waterVal} Litre`;
 
     const catTbody = document.getElementById("impactCategoryTableBody");
     if (catTbody) {

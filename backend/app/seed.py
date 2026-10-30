@@ -8,7 +8,7 @@ from app.database import init_db, SessionLocal
 from app.services.category_service import seed_categories
 from app.services.user_service import seed_users
 from app.data.seed_recipes import seed_recipes
-from app.data.seed_sample_products import seed_demo_products
+from app.data.seed_sample_products import seed_demo_products, seed_demo_consumptions
 
 
 def main():
@@ -35,6 +35,10 @@ def main():
         # 4. Demo kullanıcısı için örnek ürünleri yükle
         sample_prods = seed_demo_products(db, user_id=1)
         print(f"Demo kullanıcısı için {len(sample_prods)} örnek ürün yüklendi.")
+
+        # 5. Demo kullanıcısı için tüketim ve çevresel kazanım kayıtlarını yükle
+        sample_logs = seed_demo_consumptions(db, user_id=1)
+        print(f"Demo kullanıcısı için {len(sample_logs)} tüketim kaydı yüklendi.")
 
         print("\nTUM BASLANGIC VERILERI BASARIYLA HAZIRLANDI!")
     finally:
