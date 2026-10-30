@@ -294,34 +294,64 @@ async function handleSendMessage(rawMessage) {
   }
 }
 
+// Global olarak erişilebilir form gönderme işlevi (Sayfanın reload olmasını %100 engeller)
+window.handleChatSubmit = function(event) {
+  if (event && event.preventDefault) {
+    event.preventDefault();
+  }
+  const chatInput = document.getElementById("chatInput");
+  if (chatInput) {
+    handleSendMessage(chatInput.value);
+  }
+  return false;
+};
+
+// Global hazır soru çipi tıklama işlevi
+window.handleChipClick = function(chipOrText) {
+  let text = "";
+  if (typeof chipOrText === "string") {
+    text = chipOrText;
+  } else if (chipOrText && chipOrText.getAttribute) {
+    text = chipOrText.getAttribute("data-question") || chipOrText.textContent.trim();
+  }
+  if (text) {
+    handleSendMessage(text);
+  }
+};
+
 // ==============================================================================
 // 6. SAYFA BAŞLANGICI VE ETKİLEŞİM DİNLEYİCİLERİ
 // ==============================================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+function initChat() {
+  const chatMessages = document.getElementById("chatMessages");
+  if (!chatMessages) return;
+
+  // Kural 8: İlk açılışta yalnızca 1 kez karşılama mesajı ekle
+  if (chatMessages.children.length === 0) {
+    appendMessage("assistant", WELCOME_MESSAGE);
+  }
+
   const chatForm = document.getElementById("chatForm");
   const chatInput = document.getElementById("chatInput");
   const suggestionChips = document.querySelectorAll(".suggestion-chip");
 
-  // Kural 8: İlk açılışta kısa bir karşılama mesajı yayınla
-  appendMessage("assistant", WELCOME_MESSAGE);
-
   // Form submit dinleyicisi (Gönder butonu)
-  if (chatForm) {
+  if (chatForm && !chatForm.dataset.bound) {
+    chatForm.dataset.bound = "true";
     chatForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (chatInput) {
-        handleSendMessage(chatInput.value);
-      }
+      handleChatSubmit(e);
     });
   }
 
   // Kural 5: Enter ile gönder, Shift+Enter ile yeni satır ekle
-  if (chatInput) {
+  if (chatInput && !chatInput.dataset.bound) {
+    chatInput.dataset.bound = "true";
     chatInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleSendMessage(chatInput.value);
+        handleChatSubmit(e);
       }
     });
 
@@ -334,9 +364,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Kural 7: Hazır soru butonları (tıklayınca doğrudan gönderir)
   suggestionChips.forEach(chip => {
-    chip.addEventListener("click", () => {
-      const questionText = chip.getAttribute("data-question") || chip.textContent.trim();
-      handleSendMessage(questionText);
-    });
+    if (!chip.dataset.bound) {
+      chip.dataset.bound = "true";
+      chip.addEventListener("click", (e) => {
+        e.preventDefault();
+        handleChipClick(chip);
+      });
+    }
   });
-});
+}
+
+// Global pencere nesnesine bağla
+window.initChat = initChat;
+
+// DOM hazır olduğunda başlat
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initChat);
+} else {
+  initChat();
+}

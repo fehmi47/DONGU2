@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DÖNGÜ — Yeşil Gelecek Akıllı Gıda Yönetimi</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/chat.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
 </head>
 <body>
@@ -23,7 +24,7 @@
         <li><a class="nav-link" data-view="pantry">🥬 Mutfağım</a></li>
         <li><a class="nav-link" data-view="recipes">🍲 Tariflerim</a></li>
         <li><a class="nav-link" data-view="impact">📈 Etki Paneli</a></li>
-        <li><a class="nav-link" href="/static/chat.html">🤖 Asistan</a></li>
+        <li><a class="nav-link" data-view="chat">🤖 Asistan</a></li>
       </ul>
 
       <div class="nav-user">
@@ -562,6 +563,84 @@
       </div>
     </section>
 
+    <!-- ====================================================================== -->
+    <!-- 6. AI ASİSTAN SOHBET BÖLÜMÜ -->
+    <!-- ====================================================================== -->
+    <section id="view-chat" class="view-section">
+      <div class="chat-page-wrapper" style="margin: 0 auto; max-width: 900px;">
+        <div class="chat-card">
+
+          <!-- Sohbet Kartı Başlığı -->
+          <div class="chat-header">
+            <div class="chat-header-info">
+              <div class="chat-avatar-assistant">🌿</div>
+              <div>
+                <div class="chat-header-title">
+                  <span>DÖNGÜ Asistanı</span>
+                </div>
+                <div class="chat-header-status">
+                  <span class="status-dot"></span>
+                  <span>Çevrimiçi • Sıfır Atık ve Mutfak Rehberi</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mesajların Aktığı Alan -->
+          <div class="chat-messages" id="chatMessages">
+            <!-- Mesajlar JavaScript (chat.js) tarafından güvenli şekilde buraya eklenir -->
+          </div>
+
+          <!-- Asistan Düşünüyor / Yükleniyor Göstergesi -->
+          <div class="typing-indicator-row" id="typingIndicator" style="display: none; padding: 0.5rem 1.5rem;">
+            <div class="message-avatar">🌿</div>
+            <div class="typing-bubble">
+              <span>Asistan düşünüyor</span>
+              <div class="typing-dots">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hazır Soru Butonları -->
+          <div class="suggestions-bar" id="suggestionsBar">
+            <button type="button" class="suggestion-chip" data-question="Bugün ne tüketmeliyim?" onclick="handleChipClick(this)">
+              ⏱️ Bugün ne tüketmeliyim?
+            </button>
+            <button type="button" class="suggestion-chip" data-question="Ispanakla ne yapabilirim?" onclick="handleChipClick(this)">
+              🥬 Ispanakla ne yapabilirim?
+            </button>
+            <button type="button" class="suggestion-chip" data-question="Bu ay ne kadar gıda kurtardım?" onclick="handleChipClick(this)">
+              📊 Bu ay ne kadar gıda kurtardım?
+            </button>
+            <button type="button" class="suggestion-chip" data-question="Ambalajları nasıl ayırayım?" onclick="handleChipClick(this)">
+              ♻️ Ambalajları nasıl ayırayım?
+            </button>
+          </div>
+
+          <!-- Mesaj Giriş Alanı -->
+          <div class="chat-input-container">
+            <form class="chat-input-form" id="chatForm" onsubmit="handleChatSubmit(event); return false;">
+              <textarea
+                id="chatInput"
+                class="chat-textarea"
+                rows="1"
+                placeholder="Bir soru sorun... (örn: Bugün mutfağımda ne pişirebilirim?)"
+                autocomplete="off"
+              ></textarea>
+              <button type="button" id="chatSendBtn" class="chat-send-btn" title="Gönder" onclick="handleChatSubmit(event)">
+                <span>Gönder</span>
+                <span>➤</span>
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ====================================================================== -->
@@ -714,5 +793,6 @@
   <!-- SCRIPTS -->
   <script src="/static/js/api.js"></script>
   <script src="/static/js/app.js"></script>
+  <script src="/static/js/chat.js"></script>
 </body>
 </html>

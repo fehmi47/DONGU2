@@ -341,6 +341,7 @@ function switchView(viewName) {
   if (viewName === "recipes") loadRecipes();
   if (viewName === "impact") loadImpact();
   if (viewName === "notifications") loadNotifications();
+  if (viewName === "chat" && typeof initChat === "function") initChat();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
