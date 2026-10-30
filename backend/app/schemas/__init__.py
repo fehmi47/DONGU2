@@ -1,6 +1,12 @@
 from app.schemas.user import UserBase, UserCreate, UserResponse
 from app.schemas.category import CategoryBase, CategoryCreate, CategoryResponse
-from app.schemas.product import ProductBase, ProductCreate, ProductUpdate, ProductResponse
+from app.schemas.product import (
+    ProductBase,
+    ProductCreate,
+    ProductUpdate,
+    ProductResponse,
+    ProductPriorityResponse,
+)
 from app.schemas.recipe import (
     RecipeIngredientBase,
     RecipeIngredientCreate,

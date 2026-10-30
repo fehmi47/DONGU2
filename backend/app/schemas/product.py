@@ -7,6 +7,7 @@ from app.schemas.category import CategoryResponse
 DateTypeLiteral = Literal["STT", "TETT", "NONE"]
 StorageLocationLiteral = Literal["fridge", "freezer", "pantry"]
 ProductStatusLiteral = Literal["active", "consumed", "discarded"]
+PriorityLevelLiteral = Literal["critical", "high", "medium", "low", "expired_stt", "no_date"]
 
 # Sistemde kabul edilen standart gıda birimleri
 VALID_UNITS = {
@@ -122,3 +123,20 @@ class ProductResponse(BaseModel):
     category: Optional[CategoryResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductPriorityResponse(ProductResponse):
+    """
+    Akıllı öncelik bilgileriyle zenginleştirilmiş ürün yanıt şeması.
+    
+    Ek Alanlar:
+    - priority_level: Ürünün öncelik kategorisi ('critical', 'high', 'medium', 'low', 'expired_stt', 'no_date')
+    - days_remaining: Son tarihe kalan gün sayısı (tarihsiz ürünlerde None, geçmişte negatif)
+    - priority_message: Kullanıcıya yönelik gıda güvenliği ve tüketim yönlendirme mesajı
+    - can_be_recommended: Ürünün tariflerde veya tüketimde önerilip önerilemeyeceği (STT geçmişse False)
+    """
+    priority_level: PriorityLevelLiteral = Field(..., description="Öncelik seviyesi")
+    days_remaining: Optional[int] = Field(None, description="Kalan gün sayısı")
+    priority_message: str = Field(..., description="Gıda güvenliği ve yönlendirme açıklaması")
+    can_be_recommended: bool = Field(..., description="Tarif önerilerine uygun mu?")
+

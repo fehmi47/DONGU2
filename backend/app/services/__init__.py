@@ -14,6 +14,12 @@ from app.services.product_service import (
     InsufficientQuantityError,
     ProductNotFoundError,
 )
+from app.services.priority_service import (
+    evaluate_product_priority,
+    get_user_products_with_priority,
+    get_user_expiring_products,
+    get_single_product_priority,
+)
 
 __all__ = [
     "seed_categories",
@@ -28,4 +34,9 @@ __all__ = [
     "consume_product",
     "InsufficientQuantityError",
     "ProductNotFoundError",
+    "evaluate_product_priority",
+    "get_user_products_with_priority",
+    "get_user_expiring_products",
+    "get_single_product_priority",
 ]
+

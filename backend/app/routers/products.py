@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
+from app.schemas.product import (
+    ProductCreate,
+    ProductUpdate,
+    ProductResponse,
+    ProductPriorityResponse,
+)
 from app.services.product_service import (
     create_product,
     get_user_products,
@@ -12,6 +17,11 @@ from app.services.product_service import (
     update_product,
     delete_product,
     CategoryNotFoundError,
+)
+from app.services.priority_service import (
+    get_user_products_with_priority,
+    get_user_expiring_products,
+    get_single_product_priority,
 )
 from app.routers.deps import get_current_user
 
@@ -67,6 +77,71 @@ def list_products(
         search=search,
     )
 
+
+# ==============================================================================
+# AKILLI ÜRÜN ÖNCELİK ENDPOINT'LERİ (Static path'ler /{id}'den önce tanımlanır)
+# ==============================================================================
+
+@router.get(
+    "/priority",
+    response_model=List[ProductPriorityResponse],
+    summary="Ürünleri öncelik sırasına göre getir",
+    description="Kullanıcının aktif ürünlerini STT/TETT analizi yaparak aciliyet derecesine göre sıralar. STT geçmiş ürünleri 'expired_stt' olarak işaretler ve önerilemez kılar."
+)
+def list_products_by_priority(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Ürünleri akıllı öncelik algoritması ile sıralı olarak döner.
+    En acil tüketilmesi gereken ürünler en başta yer alır.
+    """
+    return get_user_products_with_priority(db, user_id=current_user.id)
+
+
+@router.get(
+    "/expiring",
+    response_model=List[ProductPriorityResponse],
+    summary="Tarihi yaklaşan ürünleri getir",
+    description="Belirlenen süre (varsayılan 3 gün) içerisinde son tarihi yaklaşan ürünleri listeler."
+)
+def list_expiring_products(
+    days: int = Query(3, ge=1, le=30, description="Kalan gün eşiği (varsayılan: 3 gün)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Yakın tarihte tüketilmezse israf olma riski taşıyan ürünleri döner.
+    """
+    return get_user_expiring_products(db, user_id=current_user.id, days=days)
+
+
+@router.get(
+    "/priority/{id}",
+    response_model=ProductPriorityResponse,
+    summary="Tek bir ürünün öncelik detayını getir",
+    description="Belirtilen ürünün kalan gününü, öncelik kategorisini ve gıda güvenliği öneri durumunu getirir."
+)
+def get_product_priority(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Tek bir ürünün öncelik ve gıda güvenliği durumunu döner. Ürün yoksa 404 fırlatır.
+    """
+    item = get_single_product_priority(db, user_id=current_user.id, product_id=id)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{id} ID'li ürün bulunamadı veya bu kullanıcıya ait değil."
+        )
+    return item
+
+
+# ==============================================================================
+# PARAMETRİK /{id} ENDPOINT'LERİ
+# ==============================================================================
 
 @router.get(
     "/{id}",
