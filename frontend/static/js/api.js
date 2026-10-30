@@ -60,10 +60,40 @@ class ApiService {
     }
   }
 
+  // --- KİMLİK DOĞRULAMA (AUTH) ---
+  async register(userData) {
+    return this.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async login(credentials) {
+    return this.request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async getMe() {
+    return this.request("/auth/me");
+  }
+
+  async getDemoUsers() {
+    return this.request("/auth/demo-users");
+  }
+
+  logout() {
+    localStorage.removeItem("dongu_user_id");
+    localStorage.removeItem("dongu_user");
+    this.userId = "1";
+  }
+
   // --- DASHBOARD ---
   async getDashboardSummary() {
     return this.request("/dashboard/summary");
   }
+
 
   // --- ÜRÜNLER (PRODUCTS) ---
   async getProducts(params = {}) {

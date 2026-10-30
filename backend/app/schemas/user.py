@@ -16,3 +16,14 @@ class UserResponse(UserBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserLogin(BaseModel):
+    username_or_email: str = Field(..., min_length=3, description="Kullanıcı adı veya e-posta adresi")
+    password: str = Field(..., min_length=1, description="Parola")
+
+
+class AuthResponse(BaseModel):
+    user: UserResponse
+    message: str = "Giriş başarılı"
+

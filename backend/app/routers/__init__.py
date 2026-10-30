@@ -4,6 +4,7 @@ from app.routers.recipes import router as recipes_router
 from app.routers.consumption import router as consumption_router
 from app.routers.notifications import router as notifications_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.auth import router as auth_router
 
 __all__ = [
     "products_router",
@@ -12,4 +13,6 @@ __all__ = [
     "consumption_router",
     "notifications_router",
     "dashboard_router",
+    "auth_router",
 ]
+

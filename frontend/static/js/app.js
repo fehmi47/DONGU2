@@ -5,7 +5,8 @@
 
 // Uygulama Durumu
 const state = {
-  activeView: "dashboard",
+  activeView: "home",
+  currentUser: null,
   categories: [],
   products: [],
   recipes: [],
@@ -13,6 +14,227 @@ const state = {
   selectedRecipe: null,
   consumeTargetProduct: null,
 };
+
+// ==============================================================================
+// KİMLİK DOĞRULAMA (AUTH) & KULLANICI YÖNETİMİ
+// ==============================================================================
+
+function switchAuthTab(tab) {
+  const loginBtn = document.getElementById("tabLoginBtn");
+  const registerBtn = document.getElementById("tabRegisterBtn");
+  const loginPane = document.getElementById("authLoginPane");
+  const registerPane = document.getElementById("authRegisterPane");
+  const alertLogin = document.getElementById("loginAlert");
+  const alertReg = document.getElementById("registerAlert");
+
+  if (alertLogin) alertLogin.style.display = "none";
+  if (alertReg) alertReg.style.display = "none";
+
+  if (tab === "login") {
+    if (loginBtn) loginBtn.classList.add("active");
+    if (registerBtn) registerBtn.classList.remove("active");
+    if (loginPane) loginPane.style.display = "block";
+    if (registerPane) registerPane.style.display = "none";
+  } else {
+    if (registerBtn) registerBtn.classList.add("active");
+    if (loginBtn) loginBtn.classList.remove("active");
+    if (registerPane) registerPane.style.display = "block";
+    if (loginPane) loginPane.style.display = "none";
+  }
+}
+
+function updateAuthUI() {
+  const user = state.currentUser;
+  const mainNavLinks = document.getElementById("mainNavLinks");
+  const navNotifBtn = document.getElementById("navNotifBtn");
+  const navGuestBox = document.getElementById("navGuestBox");
+  const navUserBadge = document.getElementById("navUserBadge");
+  const navUsername = document.getElementById("navUsernameDisplay");
+
+  const loggedInPane = document.getElementById("authLoggedInPane");
+  const loginPane = document.getElementById("authLoginPane");
+  const registerPane = document.getElementById("authRegisterPane");
+  const tabsContainer = document.getElementById("authTabsContainer");
+  const loggedInUserDisplay = document.getElementById("loggedInUsernameDisplay");
+  const loggedInEmailDisplay = document.getElementById("loggedInEmailDisplay");
+
+  if (user) {
+    // Giriş yapılmış: Üst menüyü aç ve göster
+    if (mainNavLinks) mainNavLinks.style.display = "flex";
+    if (navNotifBtn) navNotifBtn.style.display = "block";
+    if (navGuestBox) navGuestBox.style.display = "none";
+    if (navUserBadge) navUserBadge.style.display = "inline-flex";
+    if (navUsername) navUsername.textContent = user.username;
+
+    // Ana sayfadaki auth kutusunda oturum açık durumunu göster
+    if (tabsContainer) tabsContainer.style.display = "none";
+    if (loginPane) loginPane.style.display = "none";
+    if (registerPane) registerPane.style.display = "none";
+    if (loggedInPane) {
+      loggedInPane.style.display = "block";
+      if (loggedInUserDisplay) loggedInUserDisplay.textContent = user.username;
+      if (loggedInEmailDisplay) loggedInEmailDisplay.textContent = user.email;
+    }
+  } else {
+    // Giriş yapılmamış: Üst menüyü tamamen gizle
+    if (mainNavLinks) mainNavLinks.style.display = "none";
+    if (navNotifBtn) navNotifBtn.style.display = "none";
+    if (navGuestBox) navGuestBox.style.display = "flex";
+    if (navUserBadge) navUserBadge.style.display = "none";
+
+    // Ana sayfadaki auth kutusunda giriş ve kayıt sekmelerini göster
+    if (tabsContainer) tabsContainer.style.display = "flex";
+    if (loggedInPane) loggedInPane.style.display = "none";
+    switchAuthTab("login");
+  }
+}
+
+function initAuth() {
+  const savedUser = localStorage.getItem("dongu_user");
+  if (savedUser) {
+    try {
+      state.currentUser = JSON.parse(savedUser);
+      api.setUserId(state.currentUser.id);
+    } catch {
+      localStorage.removeItem("dongu_user");
+      state.currentUser = null;
+    }
+  } else {
+    state.currentUser = null;
+  }
+  updateAuthUI();
+}
+
+async function handleLoginSubmit(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  const usernameOrEmail = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const alertEl = document.getElementById("loginAlert");
+  const submitBtn = document.getElementById("btnLoginSubmit");
+
+  if (!usernameOrEmail || !password) return;
+
+  try {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Giriş yapılıyor...";
+    }
+    if (alertEl) alertEl.style.display = "none";
+
+    const res = await api.login({
+      username_or_email: usernameOrEmail,
+      password: password,
+    });
+
+    state.currentUser = res.user;
+    api.setUserId(res.user.id);
+    localStorage.setItem("dongu_user", JSON.stringify(res.user));
+
+    showToast(`Giriş başarılı! Menü açıldı. Hoş geldin, ${res.user.username}`);
+    updateAuthUI();
+
+    // Giriş yapıldığı zaman üst menü açılır ve kullanıcı doğrudan Dashboard'a geçer
+    switchView("dashboard");
+  } catch (err) {
+    if (alertEl) {
+      alertEl.className = "auth-alert error";
+      alertEl.textContent = err.message || "Giriş yapılamadı.";
+      alertEl.style.display = "block";
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Giriş Yap ve Menüyü Aç 🚀";
+    }
+  }
+}
+
+async function quickLogin(username) {
+  document.getElementById("loginUsername").value = username;
+  document.getElementById("loginPassword").value = "123456";
+  await handleLoginSubmit({ preventDefault: () => {} });
+}
+
+async function handleRegisterSubmit(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  const username = document.getElementById("regUsername").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const passwordConfirm = document.getElementById("regPasswordConfirm").value;
+  const alertEl = document.getElementById("registerAlert");
+  const submitBtn = document.getElementById("btnRegisterSubmit");
+
+  if (password !== passwordConfirm) {
+    if (alertEl) {
+      alertEl.className = "auth-alert error";
+      alertEl.textContent = "Parolalar birbiriyle eşleşmiyor.";
+      alertEl.style.display = "block";
+    }
+    return;
+  }
+
+  try {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Hesap oluşturuluyor...";
+    }
+    if (alertEl) alertEl.style.display = "none";
+
+    const res = await api.register({
+      username: username,
+      email: email,
+      password: password,
+    });
+
+    state.currentUser = res.user;
+    api.setUserId(res.user.id);
+    localStorage.setItem("dongu_user", JSON.stringify(res.user));
+
+    showToast(`Kaydınız tamamlandı! Menü açıldı. Hoş geldin, ${res.user.username}`);
+    updateAuthUI();
+
+    // Kayıt sonrası otomatik giriş ve Dashboard'a yönlendirme
+    switchView("dashboard");
+  } catch (err) {
+    if (alertEl) {
+      alertEl.className = "auth-alert error";
+      alertEl.textContent = err.message || "Kayıt işlemi başarısız.";
+      alertEl.style.display = "block";
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Hesap Oluştur ve Başla ✨";
+    }
+  }
+}
+
+function handleLogout() {
+  api.logout();
+  state.currentUser = null;
+  updateAuthUI();
+  showToast("Oturum kapatıldı. Üst menü kilitlendi.");
+  switchView("home");
+}
+
+function scrollToAuth(tab = "login") {
+  switchView("home");
+  switchAuthTab(tab);
+  const card = document.getElementById("homeAuthCard");
+  if (card) {
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => {
+      if (tab === "login") {
+        const inp = document.getElementById("loginUsername");
+        if (inp) inp.focus();
+      } else {
+        const inp = document.getElementById("regUsername");
+        if (inp) inp.focus();
+      }
+    }, 350);
+  }
+}
+
 
 // Yardımcı Fonksiyon: Toast Bildirimi Göster
 function showToast(message, type = "success") {
@@ -66,6 +288,12 @@ function getStorageIcon(location) {
 // ==============================================================================
 
 function switchView(viewName) {
+  // Giriş yapılmadıysa 'home' harici bir bölüme erişilmesini engelle
+  if (!state.currentUser && viewName !== "home") {
+    showToast("Mutfak paneline erişmek için lütfen önce giriş yapın.", "error");
+    viewName = "home";
+  }
+
   state.activeView = viewName;
 
   // Nav linklerini güncelle
@@ -87,12 +315,17 @@ function switchView(viewName) {
   });
 
   // İlgili görünümün verilerini yükle
+  if (viewName === "home") updateAuthUI();
   if (viewName === "dashboard") loadDashboard();
   if (viewName === "pantry") loadPantry();
   if (viewName === "recipes") loadRecipes();
   if (viewName === "impact") loadImpact();
   if (viewName === "notifications") loadNotifications();
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+
 
 // ==============================================================================
 // 1. DASHBOARD YÜKLEME
@@ -672,9 +905,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // İlk görünüm olarak Dashboard'u aç
-  switchView("dashboard");
+  // Kimlik doğrulama durumunu yükle
+  initAuth();
+
+  // İlk görünüm olarak Ana Sayfa'yı aç
+  switchView("home");
 });
+
 
 function debounce(func, delay) {
   let timer;

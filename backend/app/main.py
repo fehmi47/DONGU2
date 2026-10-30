@@ -17,6 +17,8 @@ from app.routers.recipes import router as recipes_router
 from app.routers.consumption import router as consumption_router
 from app.routers.notifications import router as notifications_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.auth import router as auth_router
+
 
 # Dizin yollarını belirleme
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -73,6 +75,7 @@ if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # API Router'larını uygulamaya dahil etme
+app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(categories_router)
 app.include_router(recipes_router)
@@ -81,14 +84,19 @@ app.include_router(notifications_router)
 app.include_router(dashboard_router)
 
 
+
 # ==============================================================================
 # FRONTEND SAYFA ROTALARI
 # ==============================================================================
 
-@app.get("/", tags=["Arayüz"], summary="Ana Sayfa (Dashboard)")
+@app.get("/", tags=["Arayüz"], summary="Ana Sayfa (Landing & Giriş)")
+@app.get("/home", tags=["Arayüz"], summary="Ana Sayfa")
+@app.get("/login", tags=["Arayüz"], summary="Giriş Sayfası")
+@app.get("/register", tags=["Arayüz"], summary="Kayıt Sayfası")
 def serve_home():
     """DÖNGÜ tek sayfa arayüzünü (SPA) döner."""
     return FileResponse(INDEX_HTML)
+
 
 
 @app.get("/pantry", tags=["Arayüz"], summary="Mutfağım Sayfası")
