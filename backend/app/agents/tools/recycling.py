@@ -1,163 +1,149 @@
 """
 DÖNGÜ AI Asistanı - Sıfır Atık ve Geri Dönüşüm Rehberi Aracı
 
-Kullanıcının sorduğu atıkların doğru geri dönüşüm kutusuna atılmasını sağlar.
-Deterministik kural tabanlı çalışır; LLM tahminine dayanmaz.
+TASARIM KARARI:
+- Atığın KATEGORİSİNİ LLM seçer, ama sadece sabit bir listeden (enum).
+  LLM "süt kutusu"nun kompozit olduğunu kelime aramasından daha iyi anlar.
+- Kutu RENGİ ve İPUÇLARI bu dosyadaki sabit kurallardan gelir.
+  LLM renk veya kural üretemez, sadece aktarır.
+
+KAYNAKLAR (renk kodları):
+- Sıfır Atık Yönetmeliği'ne ilişkin usul ve esaslar (Ocak 2022)
+- Hacettepe Üni. Halk Sağlığı AD, Sıfır Atık bilgilendirme notu
+Yayın öncesi sifiratik.gov.tr üzerinden teyit edilmeli.
 """
 
-from typing import Dict, Any, List, Union
+from typing import Any, Dict, List
 from sqlalchemy.orm import Session
 
 from app.agents.registry import register
-from app.agents.tools.recipes import turkish_lower
 
-# Renk kodları Sıfır Atık sistemine göre; yayın öncesi resmi kaynaktan teyit edilmeli.
+# Kategori anahtarları enum olarak LLM'e gidecek; anahtarları değiştirirsen
+# aşağıdaki parametre açıklamasını da güncelle.
 RECYCLING_RULES: Dict[str, Dict[str, str]] = {
-    "cam": {
-        "kategori": "Cam",
-        "kutu_rengi": "Yeşil",
-        "ipucu": "Cam şişe ve kavanozları çalkalayarak atın. Metal ve plastik kapakları kendi ayrı kutularına atın.",
+    "kagit_karton": {
+        "kategori": "Kağıt ve karton",
+        "kutu_rengi": "Mavi",
+        "ipucu": "Gazete, dergi, karton koli, kese kâğıdı. Kolileri katlayıp hacmini küçült. Yağlı veya ıslak kâğıt bu kutuya girmez.",
     },
     "plastik": {
         "kategori": "Plastik",
         "kutu_rengi": "Sarı",
-        "ipucu": "Şişelerin hacmini sıkıştırarak küçültün. Yağlı veya kirli ambalajları durulamadan atmayın.",
+        "ipucu": "Plastik şişeler, yoğurt kapları, deterjan ambalajları. İçini boşaltıp kabaca durula.",
+    },
+    "cam": {
+        "kategori": "Cam",
+        "kutu_rengi": "Yeşil",
+        "ipucu": "Cam şişe ve kavanozlar. Metal kapağı çıkarıp metale at. Porselen, seramik ve kırık bardak cam kutusuna girmez.",
     },
     "metal": {
         "kategori": "Metal",
         "kutu_rengi": "Gri",
-        "ipucu": "Konserve kutuları, meşrubat kutuları ve alüminyum tepsiler. İçini temizleyip ezin.",
+        "ipucu": "Konserve kutuları, içecek kutuları, alüminyum folyo, sıvı yağ tenekeleri. İçini boşalt.",
     },
-    "kagit_karton": {
-        "kategori": "Kağıt & Karton",
-        "kutu_rengi": "Mavi",
-        "ipucu": "Temiz ve kuru kağıt/kartonlar. Yağlı pizza kutuları veya ıslak mendiller bu kutuya ATILMAZ.",
+    "kompozit": {
+        "kategori": "Kompozit ambalaj",
+        "kutu_rengi": "Turkuaz",
+        "ipucu": "Karton süt ve meyve suyu kutuları, karton bardaklar, hazır çorba, kahve, çay ve çikolata ambalajları. Birden fazla malzemenin katmanlı birleşimidir.",
     },
     "organik": {
-        "kategori": "Organik Atık",
+        "kategori": "Biyobozunur (organik) atık",
         "kutu_rengi": "Kahverengi",
-        "ipucu": "Meyve-sebze kabukları, çay posası ve yemek artıkları. Plastik poşetsiz atılmalı veya kompost yapılmalıdır.",
+        "ipucu": "Meyve-sebze kabukları ve artıkları, çay ve kahve posası, yemek artıkları. İçine poşet, ambalaj veya sıvı yağ katma.",
+    },
+    "bitkisel_atik_yag": {
+        "kategori": "Bitkisel atık yağ",
+        "kutu_rengi": "Koyu mavi",
+        "ipucu": "Kızartma ve yemek yağını asla lavaboya dökme. Soğuduktan sonra bir şişede biriktir; belediyenin atık getirme noktasına veya lisanslı toplayıcıya ver.",
     },
     "diger": {
-        "kategori": "Diğer / Genel Çöp",
-        "kutu_rengi": "Siyah",
-        "ipucu": "Geri dönüştürülemeyen kirli peçeteler, yağlı ambalajlar, porselen ve hijyenik atıklar.",
+        "kategori": "Diğer (geri dönüştürülemeyen)",
+        "kutu_rengi": "Koyu gri",
+        "ipucu": "Islak mendil, kirli peçete, seramik ve porselen kırıkları, çok kirlenmiş ambalajlar.",
     },
 }
 
-# Malzeme anahtar kelimelerini kategorilere eşleme haritası
-KEYWORD_MAPPING: Dict[str, str] = {
-    # Cam
-    "cam": "cam",
-    "şişe": "cam",
-    "kavanoz": "cam",
-    "kadeh": "cam",
-    # Plastik
-    "plastik": "plastik",
-    "pet": "plastik",
-    "poşet": "plastik",
-    "yoğurt": "plastik",
-    "ambalaj": "plastik",
-    "naylon": "plastik",
-    # Metal
-    "metal": "metal",
-    "konserve": "metal",
-    "kola": "metal",
-    "meşrubat": "metal",
-    "teneke": "metal",
-    "alüminyum": "metal",
-    "folyo": "metal",
-    # Kağıt / Karton
-    "kagit": "kagit_karton",
-    "kağıt": "kagit_karton",
-    "karton": "kagit_karton",
-    "koli": "kagit_karton",
-    "gazete": "kagit_karton",
-    "dergi": "kagit_karton",
-    "kitap": "kagit_karton",
-    # Organik
-    "organik": "organik",
-    "kabuk": "organik",
-    "kabuğ": "organik",
-    "muz": "organik",
-    "elma": "organik",
-    "domates": "organik",
-    "patates": "organik",
-    "soğan": "organik",
-    "çay": "organik",
-    "kahve": "organik",
-    "posa": "organik",
-    "artık": "organik",
-    "yemek": "organik",
-    "ekmek": "organik",
-    "meyve": "organik",
-    "sebze": "organik",
-    "yumurta": "organik",
-}
+# Çoğu evde 6 ayrı kutu yoktur. Bu not her cevapla birlikte döner ki
+# tavsiye gerçek hayatta uygulanabilir olsun.
+IKILI_SISTEM_NOTU = (
+    "Evinde ayrı renkli kutular yoksa: kağıt, plastik, cam, metal ve kompozit ambalajlar "
+    "birlikte mavi geri dönüşüm kutusuna; yemek artıkları kahverengi kutuya (yoksa genel çöpe); "
+    "geri kalanı genel çöpe. Atık yağ her durumda ayrı biriktirilir."
+)
 
 
 @register(
     name="get_recycling_guide",
     description=(
-        "Belirtilen atık maddelerinin Sıfır Atık standartlarına göre hangi renk geri dönüşüm kutusuna "
-        "atılacağını ve ayrıştırma ipuçlarını verir. "
-        "Kullanıcı atıkların, ambalajların veya çöplerin nasıl ayrıştırılacağını sorduğunda kullanılır."
+        # 1) Ne döner
+        "Atıkların Sıfır Atık sistemine göre hangi renk kutuya gideceğini ve ayrıştırma ipuçlarını döner. "
+        "Renkler ve ipuçları sabit kurallardan gelir; cevapta bunları AYNEN kullan, araçta olmayan renk veya kural söyleme. "
+        "Ayrıca ayrı kutusu olmayan evler için 'genel_not' döner. "
+        # 2) Ne zaman çağrılır
+        "Şu durumlarda çağır: ambalaj, kabuk, kutu, şişe, yağ veya herhangi bir atığın nereye atılacağı sorulduğunda; "
+        "kullanıcı bir yemeği yaptıktan sonra atıkları nasıl ayıracağını sorduğunda. "
+        # 3) Nasıl çağrılır
+        "Kullanıcı bir yemek adı söylerse (örn. menemen), o yemekten çıkacak atıkları tek tek listele ve her birini kategorize et."
     ),
     parameters={
         "type": "object",
         "properties": {
             "items": {
                 "type": "array",
-                "description": "Ayrıştırma kuralı sorgulanacak atık adları veya kategorileri (örn: ['cam', 'plastik'] veya ['muz kabuğu', 'konserve kutusu']).",
-                "items": {"type": "string"},
+                "description": "Ayrıştırılacak atıkların listesi. Her atık ayrı bir öğe olmalı.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "atik": {
+                            "type": "string",
+                            "description": "Atığın kısa adı (örn. 'süt kutusu', 'domates kabuğu').",
+                        },
+                        "kategori": {
+                            "type": "string",
+                            "enum": list(RECYCLING_RULES.keys()),
+                            # Sınıflandırma kılavuzu: LLM'in doğru kategoriyi seçmesi bu metne bağlı
+                            "description": (
+                                "kagit_karton: gazete, koli, kese kâğıdı, yumurta kolisi. "
+                                "plastik: plastik şişe, yoğurt kabı, plastik ambalaj, poşet. "
+                                "cam: cam şişe ve kavanoz (porselen ve seramik DEĞİL). "
+                                "metal: konserve, içecek kutusu, alüminyum folyo, yağ tenekesi, metal kapak. "
+                                "kompozit: karton süt ve meyve suyu kutusu, karton bardak, çay/kahve/çikolata/hazır çorba paketi. "
+                                "organik: kabuklar, sebze-meyve artıkları, çay ve kahve posası, yemek artığı, yumurta kabuğu. "
+                                "bitkisel_atik_yag: kullanılmış kızartma ve yemek yağı. "
+                                "diger: ıslak mendil, kirli peçete, seramik, porselen, kırık bardak. "
+                                "Emin değilsen 'diger' seç."
+                            ),
+                        },
+                    },
+                    "required": ["atik", "kategori"],
+                },
             }
         },
         "required": ["items"],
     },
 )
-def get_recycling_guide(
-    db: Session,
-    user_id: int,
-    items: List[Union[str, Dict[str, Any]]],
-) -> Dict[str, Any]:
-    """
-    Verilen atık öğeleri için deterministik kurallara göre kutu rengi ve ipuçlarını döner.
-    """
-    rehber_sonuclari: List[Dict[str, Any]] = []
+def get_recycling_guide(db: Session, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Her atık için sabit kurallardan kutu rengini ve ipucunu döner."""
+    rehber: List[Dict[str, Any]] = []
 
-    for raw_item in items:
-        # Metin veya sözlük formatını destekle
-        if isinstance(raw_item, dict):
-            item_text = raw_item.get("name") or raw_item.get("kategori") or raw_item.get("item") or ""
-        else:
-            item_text = str(raw_item)
+    for item in items:
+        atik = str(item.get("atik", "")).strip()
+        kategori = item.get("kategori")
 
-        item_norm = turkish_lower(item_text.strip())
-        matched_category = None
+        # Savunmacı kontrol: enum'a rağmen LLM geçersiz bir değer gönderirse
+        # çökmek yerine 'diger'e düş ve bunu işaretle.
+        gecerli = kategori in RECYCLING_RULES
+        kural = RECYCLING_RULES[kategori if gecerli else "diger"]
 
-        # Doğrudan kategori anahtarı mı?
-        if item_norm in RECYCLING_RULES:
-            matched_category = item_norm
-        else:
-            # Anahtar kelime taraması
-            for kw, cat in KEYWORD_MAPPING.items():
-                if kw in item_norm:
-                    matched_category = cat
-                    break
-
-        if not matched_category:
-            matched_category = "diger"
-
-        rule = RECYCLING_RULES[matched_category]
-        rehber_sonuclari.append({
-            "atik": item_text,
-            "kategori": rule["kategori"],
-            "kutu_rengi": rule["kutu_rengi"],
-            "ipucu": rule["ipucu"],
+        rehber.append({
+            "atik": atik,
+            "kategori": kural["kategori"],
+            "kutu_rengi": kural["kutu_rengi"],
+            "ipucu": kural["ipucu"],
+            "emin_degil": not gecerli,
         })
 
     return {
-        "rehber": rehber_sonuclari,
-        "kural_sayisi": len(rehber_sonuclari),
-        "not": "Renk kodları Sıfır Atık sistemine göre belirlenmiştir.",
+        "rehber": rehber,
+        "genel_not": IKILI_SISTEM_NOTU,
     }

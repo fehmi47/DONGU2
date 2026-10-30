@@ -15,9 +15,19 @@ from app.services.consumption_service import calculate_consumption_summary
 @register(
     name="get_consumption_stats",
     description=(
-        "Kullanıcının bugüne kadar değerlendirdiği/kurtardığı gerçek gıda miktarlarını, tamamladığı tarif sayısını "
-        "ve bunlara bağlı hesaplanan tahmini çevresel kazanımları (CO2 ve su tasarrufu) getirir. "
-        "Kullanıcı ne kadar gıda kurtardığını veya ne kadar tasarruf sağladığını sorduğunda çağrılmalıdır."
+        # 1) Ne döner: yapı ve dönemlerin TAM anlamı
+        "Kullanıcının kayıtlı tüketim verilerinden istatistik döner. İki bölüm vardır: "
+        "'gercek' (toplam, son 7 gün ve son 30 gün kurtarılan kg; tamamlanan tarif sayısı; kategori dökümü) ve "
+        "'tahmini' (CO2 ve su). 'tahmini' bölümündeki her değeri söylerken 'tahmini' kelimesini kullan. "
+        # 2) Dönem kuralı: takvim ayı ile son 30 gün aynı şey değil
+        "Dönemler takvim haftası/ayı değil, kayan pencerelerdir: 'bu ay' sorulursa 'son 30 günde' diye cevap ver. "
+        # 3) Ne zaman çağrılır
+        "Şu durumlarda çağır: ne kadar gıda kurtardım; kaç tarif tamamladım; en çok hangi kategoriyi tüketiyorum; "
+        "çevresel etkim ne. "
+        # 4) Ne YAPMAZ: veri olmayan sorularda uydurmayı engeller
+        "Bu araçta para (TL) verisi ve atılan/israf edilen ürün kaydı YOKTUR; bunlar sorulursa sistemin "
+        "bunu henüz takip etmediğini söyle. 'veri_yok' true ise kullanıcıya tüketim kaydettikçe "
+        "istatistiklerin oluşacağını söyle."
     ),
     parameters={
         "type": "object",

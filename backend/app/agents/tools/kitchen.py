@@ -18,10 +18,21 @@ STT_GECMIS_NOTU = "Son tüketim tarihi geçmiş. Tüketim için önerilmez."
 
 @register(
     name="get_priority_products",
+    # Açıklamanın 3 görevi var: (1) aracın ne döndüğünü anlatmak,
+    # (2) NE ZAMAN çağrılacağını söylemek, (3) ne YAPMADIĞINI söylemek.
+    # LLM araç seçimini neredeyse tamamen bu metne bakarak yapar.
     description=(
-        "Kullanıcının mutfağındaki aktif gıda ürünlerini tüketim önceliğine göre sıralı olarak getirir. "
-        "Son Tüketim Tarihi (STT) ve Tavsiye Edilen Tüketim Tarihi (TETT) durumlarını, kalan gün sayılarını "
-        "ve kritiklik seviyelerini içerir. Bugün ne tüketilmeli veya hangi ürünlerin bozulma riski var sorularında mutlaka çağrılmalıdır."
+        # 1) Ne döner: alan adları koddakilerle birebir aynı olmalı
+        "Kullanıcının mutfağındaki aktif ürünleri tüketim önceliğine göre sıralı döner (en fazla 10). "
+        "Her üründe: ad, miktar, birim, tarih tipi (STT/TETT), kalan gün, aciliyet (yuksek/orta/dusuk) "
+        "ve varsa 'uyari' metni bulunur. Son tüketim tarihi geçmiş ürünler ayrı bir "
+        "'tarihi_gecmis_stt' listesinde yalnızca ad olarak gelir; bunları asla önerme. "
+        # 2) Ne zaman çağrılır: system prompt'taki strateji ile aynı
+        "Şu durumlarda çağır: bugün/bu hafta ne tüketilmeli; hangi ürünler bozulmak üzere; "
+        "belirli bir ürünün durumu, miktarı veya kalan günü; belirli bir ürünle tarif aramadan önce "
+        "o ürünün mutfakta olup olmadığını kontrol etmek. "
+        # 3) Ne yapmaz: LLM'in bu araçtan yanlış beklentiye girmesini engeller
+        "Bu araç tarif döndürmez ve stokta değişiklik yapmaz."
     ),
     parameters={
         "type": "object",

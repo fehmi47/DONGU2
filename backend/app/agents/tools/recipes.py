@@ -49,17 +49,31 @@ def turkish_match(query: str, target: str) -> bool:
 @register(
     name="search_recipes",
     description=(
-        "Kullanıcının mutfağındaki malzemelerle yapabileceği yemek tariflerini akıllı eşleştirme puanına göre listeler. "
-        "Bozulmak üzere olan ürünleri kullanan ve eldeki malzemelerle hemen pişirilebilecek tarifleri öne çıkarır. "
-        "İsteğe bağlı olarak belirli bir malzemeye göre (örn: 'domates', 'yoğurt', 'ıspanak') filtreleme yapabilir. "
-        "Aranan malzemenin kullanıcının mutfağında olup olmadığını 'kullanicida_var' alanı ile belirtir."
+        # 1) Ne döner: alanlar ve ANLAMLARI. LLM'in yanlış yorumlamasını burada engelliyoruz.
+        "Veritabanındaki tarifleri kullanıcının mutfağıyla eşleştirip en fazla 5 tarif döner. "
+        "Bozulmak üzere olan ürünleri kullanan tarifler üsttedir. Her tarifte: ad, eşleşme oranı, "
+        "süre, 'eldeki_malzemeler' (kullanıcıda olanlar) ve 'eksik_malzemeler' (kullanıcıda OLMAYANLAR) bulunur. "
+        "Bir malzeme ya eldeki ya da eksik listesindedir, ikisinde birden olamaz. "
+        # 2) Özel alanın davranışı: alanı söylemek yetmez, ne yapılacağını da söyle
+        "Filtre kullanıldığında 'kullanicida_var' alanı döner. Değer false ise cevabına "
+        "o malzemenin mutfakta olmadığını söyleyerek başla. "
+        # 3) Ne zaman çağrılır
+        "Şu durumlarda çağır: ne pişirebilirim; belirli bir malzemeyle ne yapılır; tarif önerisi. "
+        # 4) Ne yapmaz: AI tarifleri bu araçtan gelmez, sınır net olsun
+        "Bu araç sadece kayıtlı tarifleri döner; yeni tarif üretmez. "
+        "Sonuç boşsa bunu kısaca belirt; ardından asistan önerisi yapılabilir."
     ),
     parameters={
         "type": "object",
         "properties": {
             "ingredient": {
                 "type": "string",
-                "description": "Opsiyonel filtre. Belirli bir malzemeyi içeren tarifleri bulmak için malzeme adı (örn: 'domates', 'ıspanak', 'incir').",
+                # Parametre açıklaması da bir prompt'tur: format kurallarını burada ver
+                "description": (
+                    "Opsiyonel. TEK bir malzemenin yalın, ek almamış hali, küçük harfle "
+                    "('domateslerle' değil 'domates', 'ıspanağım' değil 'ıspanak'). "
+                    "Kullanıcı birden fazla malzeme sayarsa en acil olanı gönder ya da filtresiz çağır."
+                ),
             }
         },
         "required": [],
