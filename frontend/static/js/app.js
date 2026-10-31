@@ -52,7 +52,7 @@ const RECIPE_IMAGE_MAP = {
   "menemen": "https://images.unsplash.com/photo-1594998893017-36147cbcae05?w=600&auto=format&fit=crop&q=80",
   "sebzeli omlet": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop&q=80",
   "sebzeli bulgur pilavı": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
-  "sebzeli makarna": "https://images.unsplash.com/photo-1621996346565-e3d5d6281691?w=600&auto=format&fit=crop&q=80",
+  "sebzeli makarna": "https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=600&auto=format&fit=crop&q=80",
   "şakşuka": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80",
   "yayla çorbası": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80",
   "patates yemeği": "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&auto=format&fit=crop&q=80",
@@ -900,12 +900,80 @@ async function handleConsumeSubmit(e) {
   }
 }
 
+
+// ==============================================================================
+// ÖZEL ONAY İLETİŞİM KUTUSU (CUSTOM CONFIRM DIALOG)
+// ==============================================================================
+
+function showConfirmDialog({
+  title = "İşlemi Onaylayın",
+  message = "Bu işlemi yapmak istediğinize emin misiniz?",
+  icon = "🗑️",
+  confirmText = "Evet, Sil",
+  confirmColor = "#dc2626",
+  cancelText = "Vazgeç"
+} = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("customConfirmModal");
+    const titleEl = document.getElementById("customConfirmTitle");
+    const msgEl = document.getElementById("customConfirmMessage");
+    const iconEl = document.getElementById("customConfirmIcon");
+    const okBtn = document.getElementById("customConfirmOkBtn");
+    const cancelBtn = document.getElementById("customConfirmCancelBtn");
+
+    if (!modal) {
+      resolve(window.confirm(message));
+      return;
+    }
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    iconEl.textContent = icon;
+    okBtn.textContent = confirmText;
+    okBtn.style.background = confirmColor;
+    okBtn.style.borderColor = confirmColor;
+    cancelBtn.textContent = cancelText;
+
+    const cleanup = () => {
+      closeModal("customConfirmModal");
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+    };
+
+    const onOk = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+
+    openModal("customConfirmModal");
+  });
+}
+
 async function deleteProductHandler(productId) {
-  if (!confirm("Bu ürünü kilerinizden kaldırmak istediğinize emin misiniz?")) return;
+  const prod = state.products.find(p => p.id === productId);
+  const name = prod ? prod.name : "bu ürünü";
+
+  const confirmed = await showConfirmDialog({
+    title: "Ürünü Kilerden Sil",
+    message: `"${name}" ürününü kilerinizden kaldırmak istediğinize emin misiniz?`,
+    icon: "🗑️",
+    confirmText: "Evet, Sil",
+    confirmColor: "#dc2626"
+  });
+
+  if (!confirmed) return;
 
   try {
     await api.deleteProduct(productId, false);
-    showToast("Ürün kilerinizden silindi.");
+    showToast(`"${name}" kilerinizden başarıyla silindi.`);
     loadPantry();
   } catch (err) {
     showToast(err.message, "error");
@@ -993,8 +1061,10 @@ function renderRecipesCards(recipes) {
   }
 
   container.innerHTML = recipes.map(r => {
+    const userImg = (r.image_url && typeof r.image_url === "string" && r.image_url.trim().length > 0) ? r.image_url.trim() : null;
     const key = r.name.toLowerCase().trim();
-    const imgSrc = RECIPE_IMAGE_MAP[key] || r.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600";
+    const fallbackImg = "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop&q=80";
+    const imgSrc = userImg || RECIPE_IMAGE_MAP[key] || fallbackImg;
 
     const topBadgeClass = r.can_prepare ? "ready" : "missing";
     const topBadgeText = r.can_prepare ? "● HEMEN PİŞİRİLEBİLİR" : "● EKSİK MALZEME VAR";
@@ -1015,7 +1085,7 @@ function renderRecipesCards(recipes) {
     return `
       <div class="recipe-card-stitch">
         <div class="recipe-img-box">
-          <img src="${imgSrc}" alt="${r.name}" loading="lazy">
+          <img src="${imgSrc}" alt="${r.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop&q=80';">
           <div class="recipe-overlay-badge-top ${topBadgeClass}">${topBadgeText}</div>
           ${priorityBadge}
         </div>
@@ -1044,9 +1114,13 @@ function renderRecipesCards(recipes) {
             </div>
           </div>
 
-          <button class="btn-stitch-primary btn-full" onclick="openRecipeDetailModal(${r.id})">
-            İncele &amp; Pişir →
-          </button>
+          <div class="recipe-card-actions-row">
+            <button class="btn-stitch-primary btn-grow" onclick="openRecipeDetailModal(${r.id})">
+              İncele &amp; Pişir →
+            </button>
+            <button class="btn-recipe-card-action" onclick="openEditRecipeModal(${r.id})" title="Tarifi Düzenle">✏️</button>
+            <button class="btn-recipe-card-action btn-recipe-delete" onclick="deleteRecipeHandler(${r.id})" title="Tarifi Sil">🗑️</button>
+          </div>
         </div>
       </div>
     `;
@@ -1059,6 +1133,15 @@ function openRecipeDetailModal(recipeId) {
 
   state.selectedRecipe = recipe;
   document.getElementById("recipeModalTitle").textContent = recipe.name;
+  
+  const detailImg = document.getElementById("recipeModalImage");
+  if (detailImg) {
+    const userImg = (recipe.image_url && typeof recipe.image_url === "string" && recipe.image_url.trim().length > 0) ? recipe.image_url.trim() : null;
+    const key = recipe.name.toLowerCase().trim();
+    const imgSrc = userImg || RECIPE_IMAGE_MAP[key] || "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop&q=80";
+    detailImg.src = imgSrc;
+    detailImg.style.display = "block";
+  }
   document.getElementById("recipeModalDesc").textContent = recipe.description;
   document.getElementById("recipeModalInstructions").innerHTML = recipe.instructions.replace(/\n/g, "<br>");
 
@@ -1094,9 +1177,15 @@ async function cookRecipeHandler() {
     return;
   }
 
-  if (!confirm(`"${state.selectedRecipe.name}" tarifini pişirip kilerdeki ${matched.length} malzemeyi tüketim kaydı olarak düşmek istiyor musunuz?`)) {
-    return;
-  }
+  const confirmed = await showConfirmDialog({
+    title: "Tarifi Pişir ve Stoktan Düş",
+    message: `"${state.selectedRecipe.name}" tarifini pişirip kilerdeki ${matched.length} malzemeyi tüketim kaydı olarak düşmek istiyor musunuz?`,
+    icon: "🍲",
+    confirmText: "Evet, Pişir",
+    confirmColor: "#16a34a"
+  });
+
+  if (!confirmed) return;
 
   try {
     const payload = {
@@ -1291,3 +1380,214 @@ document.addEventListener("DOMContentLoaded", () => {
   // İlk görünüm olarak Ana Sayfa
   switchView("home");
 });
+
+
+// ==============================================================================
+// TARİF CRUD FONKSİYONLARI (EKLE, GÜNCELLE, SİL)
+// ==============================================================================
+
+// Güvenli API bağlama (Tarayıcı önbelleği eski api.js dosyasını tutsa dahi CRUD işlemlerini garanti eder)
+if (typeof api !== "undefined") {
+  if (typeof api.addRecipe !== "function") {
+    api.addRecipe = async function (recipeData) {
+      return this.request("/recipes", {
+        method: "POST",
+        body: JSON.stringify(recipeData),
+      });
+    };
+  }
+  if (typeof api.updateRecipe !== "function") {
+    api.updateRecipe = async function (id, recipeData) {
+      return this.request(`/recipes/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(recipeData),
+      });
+    };
+  }
+  if (typeof api.deleteRecipe !== "function") {
+    api.deleteRecipe = async function (id) {
+      return this.request(`/recipes/${id}`, {
+        method: "DELETE",
+      });
+    };
+  }
+}
+
+function addIngredientRow(data = {}) {
+  const container = document.getElementById("recipeIngredientsContainer");
+  if (!container) return;
+
+  const row = document.createElement("div");
+  row.className = "recipe-ing-row";
+
+  const nameVal = data.ingredient_name || "";
+  const qtyVal = data.quantity !== undefined ? data.quantity : 1;
+  const unitVal = (data.unit || "adet").toLowerCase();
+  const isOpt = !!data.is_optional;
+
+  const units = ["adet", "kg", "gram", "litre", "ml", "kaşık", "paket", "demet", "porsiyon", "dilim", "bardak", "kutu", "kavanoz"];
+  const unitOptions = units.map(u => `<option value="${u}" ${u === unitVal ? "selected" : ""}>${u}</option>`).join("");
+
+  row.innerHTML = `
+    <input type="text" class="form-control ing-name" placeholder="Malzeme adı (örn: Domates)" value="${nameVal}" required>
+    <input type="number" class="form-control ing-qty" step="0.01" min="0.01" placeholder="Miktar" value="${qtyVal}" required>
+    <select class="form-control ing-unit" required>
+      ${unitOptions}
+    </select>
+    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; white-space: nowrap;">
+      <input type="checkbox" class="ing-opt" ${isOpt ? "checked" : ""}> Ops.
+    </label>
+    <button type="button" class="recipe-ing-remove" onclick="this.closest('.recipe-ing-row').remove()" title="Malzemeyi Kaldır">&times;</button>
+  `;
+
+  container.appendChild(row);
+}
+
+function openAddRecipeModal() {
+  const form = document.getElementById("recipeForm");
+  if (form) form.reset();
+
+  document.getElementById("recipeFormId").value = "";
+  document.getElementById("recipeFormModalTitle").textContent = "🍲 Yeni Tarif Ekle";
+  document.getElementById("recipeFormSubmitBtn").textContent = "Tarifi Kaydet";
+
+  const container = document.getElementById("recipeIngredientsContainer");
+  if (container) {
+    container.innerHTML = "";
+    addIngredientRow({ ingredient_name: "", quantity: 1, unit: "adet" });
+    addIngredientRow({ ingredient_name: "", quantity: 1, unit: "adet" });
+  }
+
+  openModal("recipeFormModal");
+}
+
+async function openEditRecipeModal(recipeId) {
+  closeModal("recipeDetailModal");
+
+  let recipe = state.recipes.find(r => r.id === recipeId);
+  if (!recipe || !recipe.ingredients) {
+    try {
+      recipe = await api.getRecipeDetail(recipeId);
+    } catch (err) {
+      showToast("Tarif bilgileri yüklenemedi: " + err.message, "error");
+      return;
+    }
+  }
+
+  document.getElementById("recipeFormId").value = recipe.id;
+  document.getElementById("recipeFormName").value = recipe.name;
+  document.getElementById("recipeFormDesc").value = recipe.description;
+  document.getElementById("recipeFormPrepTime").value = recipe.preparation_time;
+  document.getElementById("recipeFormCookTime").value = recipe.cooking_time;
+  document.getElementById("recipeFormServings").value = recipe.servings;
+  document.getElementById("recipeFormDifficulty").value = recipe.difficulty;
+  document.getElementById("recipeFormImageUrl").value = recipe.image_url || "";
+  document.getElementById("recipeFormInstructions").value = recipe.instructions;
+
+  document.getElementById("recipeFormModalTitle").textContent = "✏️ Tarifi Düzenle";
+  document.getElementById("recipeFormSubmitBtn").textContent = "Değişiklikleri Güncelle";
+
+  const container = document.getElementById("recipeIngredientsContainer");
+  if (container) {
+    container.innerHTML = "";
+    if (recipe.ingredients && recipe.ingredients.length > 0) {
+      recipe.ingredients.forEach(ing => addIngredientRow(ing));
+    } else {
+      addIngredientRow({ ingredient_name: "", quantity: 1, unit: "adet" });
+    }
+  }
+
+  openModal("recipeFormModal");
+}
+
+async function handleRecipeFormSubmit(event) {
+  event.preventDefault();
+
+  const idVal = document.getElementById("recipeFormId").value;
+  const name = document.getElementById("recipeFormName").value.trim();
+  const description = document.getElementById("recipeFormDesc").value.trim();
+  const preparation_time = parseInt(document.getElementById("recipeFormPrepTime").value);
+  const cooking_time = parseInt(document.getElementById("recipeFormCookTime").value);
+  const servings = parseInt(document.getElementById("recipeFormServings").value);
+  const difficulty = document.getElementById("recipeFormDifficulty").value;
+  const image_url = document.getElementById("recipeFormImageUrl").value.trim() || null;
+  const instructions = document.getElementById("recipeFormInstructions").value.trim();
+
+  // Malzemeleri topla
+  const ingRows = document.querySelectorAll("#recipeIngredientsContainer .recipe-ing-row");
+  if (ingRows.length === 0) {
+    showToast("Lütfen tarif için en az 1 malzeme ekleyin.", "error");
+    return;
+  }
+
+  const ingredients = [];
+  for (const row of ingRows) {
+    const ingName = row.querySelector(".ing-name").value.trim();
+    const ingQty = parseFloat(row.querySelector(".ing-qty").value);
+    const ingUnit = row.querySelector(".ing-unit").value;
+    const isOpt = row.querySelector(".ing-opt").checked;
+
+    if (!ingName || isNaN(ingQty) || ingQty <= 0) {
+      showToast("Lütfen tüm malzeme satırlarını geçerli bilgilerle doldurun.", "error");
+      return;
+    }
+
+    ingredients.push({
+      ingredient_name: ingName,
+      quantity: ingQty,
+      unit: ingUnit,
+      is_optional: isOpt,
+    });
+  }
+
+  const payload = {
+    name,
+    description,
+    preparation_time,
+    cooking_time,
+    servings,
+    difficulty,
+    image_url,
+    instructions,
+    ingredients,
+  };
+
+  try {
+    if (idVal) {
+      await api.updateRecipe(parseInt(idVal), payload);
+      showToast(`"${name}" tarifi başarıyla güncellendi!`);
+    } else {
+      await api.addRecipe(payload);
+      showToast(`"${name}" tarifi başarıyla oluşturuldu!`);
+    }
+
+    closeModal("recipeFormModal");
+    await loadRecipes();
+  } catch (err) {
+    showToast("İşlem sırasında hata oluştu: " + err.message, "error");
+  }
+}
+
+async function deleteRecipeHandler(recipeId) {
+  let recipe = state.recipes.find(r => r.id === recipeId);
+  const recipeName = recipe ? recipe.name : "Bu tarifi";
+
+  const confirmed = await showConfirmDialog({
+    title: "Tarifi Sil",
+    message: `"${recipeName}" tarifini sistemden kalıcı olarak silmek istediğinize emin misiniz?`,
+    icon: "🗑️",
+    confirmText: "Evet, Sil",
+    confirmColor: "#dc2626"
+  });
+
+  if (!confirmed) return;
+
+  try {
+    await api.deleteRecipe(recipeId);
+    showToast(`"${recipeName}" tarifi silindi.`);
+    closeModal("recipeDetailModal");
+    await loadRecipes();
+  } catch (err) {
+    showToast("Tarif silinirken hata oluştu: " + err.message, "error");
+  }
+}

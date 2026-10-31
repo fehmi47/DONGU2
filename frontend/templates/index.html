@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
   <title>DÖNGÜ • Akıllı Kiler & Mutfak — Sıfır Atık Gıda Yönetimi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.2.0">
-  <link rel="stylesheet" href="/static/css/chat.css?v=2.3.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.1.0">
+  <link rel="stylesheet" href="/static/css/chat.css?v=3.1.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
 </head>
 <body>
@@ -725,15 +726,20 @@
           <h1 class="header-main-title">Akıllı Tarif Eşleştirme Motoru</h1>
           <p class="header-main-desc">Kilerinizdeki öncelikli ve son kullanma tarihi yaklaşan gıdaları israf etmeden sofraya kazandıran en optimize tarifler.</p>
         </div>
-        <div class="header-badge-pills-row">
-          <div class="pill-badge-peach">
-            <span class="dot-indicator orange"></span>
-            <span id="recipesPantryUrgentBadge">5 Acil Malzeme Kilerde</span>
+        <div class="header-action-group" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <div class="header-badge-pills-row">
+            <div class="pill-badge-peach">
+              <span class="dot-indicator orange"></span>
+              <span id="recipesPantryUrgentBadge">5 Acil Malzeme Kilerde</span>
+            </div>
+            <div class="pill-badge-gray">
+              <span>⏱️</span>
+              <span>%92 Kurtarma Potansiyeli</span>
+            </div>
           </div>
-          <div class="pill-badge-gray">
-            <span>⏱️</span>
-            <span>%92 Kurtarma Potansiyeli</span>
-          </div>
+          <button class="btn-stitch-primary" onclick="openAddRecipeModal()">
+            <span>➕</span> Yeni Tarif Ekle
+          </button>
         </div>
       </div>
 
@@ -1210,6 +1216,7 @@
         <button class="modal-close" onclick="closeModal('recipeDetailModal')">&times;</button>
       </div>
       <div class="modal-body">
+        <img id="recipeModalImage" src="" alt="Tarif Görseli" referrerpolicy="no-referrer" style="width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem; display: none;" onerror="this.style.display='none'">
         <p id="recipeModalDesc" style="color: var(--text-muted); margin-bottom: 1.25rem; font-size: 0.92rem;"></p>
 
         <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-forest); margin-bottom: 0.6rem;">📋 Malzemeler ve Kiler Durumu</h4>
@@ -1222,9 +1229,104 @@
           <!-- Dinamik Adımlar -->
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-stitch-secondary" onclick="closeModal('recipeDetailModal')">Kapat</button>
-        <button type="button" class="btn-stitch-primary" onclick="cookRecipeHandler()">🍲 Bu Tarifi Pişirdim (Stoktan Düş)</button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn-stitch-secondary" onclick="openEditRecipeModal(state.selectedRecipe.id)">✏️ Düzenle</button>
+          <button type="button" class="btn-stitch-secondary" style="color: #dc2626;" onclick="deleteRecipeHandler(state.selectedRecipe.id)">🗑️ Sil</button>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn-stitch-secondary" onclick="closeModal('recipeDetailModal')">Kapat</button>
+          <button type="button" class="btn-stitch-primary" onclick="cookRecipeHandler()">🍲 Bu Tarifi Pişirdim (Stoktan Düş)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. TARİF EKLE / DÜZENLE MODALI -->
+  <div class="modal-overlay" id="recipeFormModal">
+    <div class="modal-box" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 id="recipeFormModalTitle">🍲 Yeni Tarif Ekle</h3>
+        <button class="modal-close" onclick="closeModal('recipeFormModal')">&times;</button>
+      </div>
+      <form id="recipeForm" onsubmit="handleRecipeFormSubmit(event); return false;" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+        <input type="hidden" id="recipeFormId">
+        <div class="modal-body" style="overflow-y: auto; padding-right: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">Tarif Adı *</label>
+            <input type="text" id="recipeFormName" class="form-control" placeholder="Örn: Fırında Sebzeli Mücver" required minlength="2" maxlength="150">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Açıklama ve Püf Noktaları *</label>
+            <textarea id="recipeFormDesc" class="form-control" rows="2" placeholder="Tarif hakkında kısa bilgi veya lezzet sırrı..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Hazırlık Süresi (dk) *</label>
+              <input type="number" id="recipeFormPrepTime" class="form-control" min="0" placeholder="15" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pişirme Süresi (dk) *</label>
+              <input type="number" id="recipeFormCookTime" class="form-control" min="0" placeholder="25" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Porsiyon *</label>
+              <input type="number" id="recipeFormServings" class="form-control" min="1" placeholder="4" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Zorluk *</label>
+              <select id="recipeFormDifficulty" class="form-control" required>
+                <option value="Kolay">Kolay</option>
+                <option value="Orta">Orta</option>
+                <option value="Zor">Zor</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Görsel URL Adresi (Opsiyonel)</label>
+            <input type="url" id="recipeFormImageUrl" class="form-control" placeholder="https://images.unsplash.com/...">
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <label class="form-label" style="margin: 0;">📋 Malzemeler *</label>
+              <button type="button" class="btn-stitch-secondary" style="padding: 3px 8px; font-size: 0.78rem;" onclick="addIngredientRow()">
+                ➕ Malzeme Ekle
+              </button>
+            </div>
+            <div id="recipeIngredientsContainer" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <!-- Dinamik Malzeme Satırları -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">👨‍🍳 Hazırlanış ve Pişirme Adımları *</label>
+            <textarea id="recipeFormInstructions" class="form-control" rows="4" placeholder="1. Fırını 180 dereceye ısıtın.&#10;2. Malzemeleri doğrayıp karıştırın.&#10;3. Tepsiye yayıp 25 dakika pişirin." required></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-stitch-secondary" onclick="closeModal('recipeFormModal')">İptal</button>
+          <button type="submit" class="btn-stitch-primary" id="recipeFormSubmitBtn">Tarifi Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. ÖZEL ONAY MODALI (CUSTOM CONFIRM MODAL) -->
+  <div class="modal-overlay" id="customConfirmModal">
+    <div class="modal-box" style="max-width: 440px; text-align: center; padding: 1.75rem 1.5rem;">
+      <div id="customConfirmIconWrapper" style="width: 54px; height: 54px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 1rem;">
+        <span id="customConfirmIcon">🗑️</span>
+      </div>
+      <h3 id="customConfirmTitle" style="font-size: 1.15rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem;">İşlemi Onaylayın</h3>
+      <p id="customConfirmMessage" style="font-size: 0.9rem; color: #4b5563; line-height: 1.5; margin-bottom: 1.5rem;"></p>
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <button type="button" class="btn-stitch-secondary" style="flex: 1; padding: 0.65rem 1rem;" id="customConfirmCancelBtn">Vazgeç</button>
+        <button type="button" class="btn-stitch-primary" style="flex: 1; padding: 0.65rem 1rem; background: #dc2626; border-color: #dc2626;" id="customConfirmOkBtn">Evet, Sil</button>
       </div>
     </div>
   </div>
@@ -1233,8 +1335,8 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- SCRIPTS -->
-  <script src="/static/js/api.js?v=2.2.0"></script>
-  <script src="/static/js/app.js?v=2.2.0"></script>
-  <script src="/static/js/chat.js?v=2.3.0"></script>
+  <script src="/static/js/api.js?v=3.1.0"></script>
+  <script src="/static/js/app.js?v=3.1.0"></script>
+  <script src="/static/js/chat.js?v=3.1.0"></script>
 </body>
 </html>

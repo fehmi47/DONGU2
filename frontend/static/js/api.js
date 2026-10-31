@@ -153,6 +153,26 @@ class ApiService {
     return this.request("/recipes/recommendations");
   }
 
+  async addRecipe(recipeData) {
+    return this.request("/recipes", {
+      method: "POST",
+      body: JSON.stringify(recipeData),
+    });
+  }
+
+  async updateRecipe(id, recipeData) {
+    return this.request(`/recipes/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(recipeData),
+    });
+  }
+
+  async deleteRecipe(id) {
+    return this.request(`/recipes/${id}`, {
+      method: "DELETE",
+    });
+  }
+
   async smartDeductRecipe(deductionData) {
     return this.request("/recipes/smart-deduction", {
       method: "POST",
@@ -196,3 +216,6 @@ class ApiService {
 
 // Global API nesnesi
 const api = new ApiService();
+if (typeof window !== "undefined") {
+  window.api = api;
+}
