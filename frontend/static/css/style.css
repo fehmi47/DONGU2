@@ -1225,6 +1225,21 @@ body {
   color: #dc2626;
 }
 
+.btn-table-edit {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.btn-table-edit:hover {
+  color: var(--primary-forest, #15803d);
+  transform: scale(1.1);
+}
+
 /* Table Footer */
 .stitch-table-footer {
   padding: 0.85rem 1.15rem;

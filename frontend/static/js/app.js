@@ -737,6 +737,7 @@ function renderPantryTable(products) {
         <td>
           <div class="table-action-btns">
             <button class="btn-table-consume" onclick="openConsumeModal(${p.id})">🍽️ Tüket</button>
+            <button class="btn-table-edit" onclick="openEditProductModal(${p.id})" title="Ürünü Güncelle">✏️</button>
             <button class="btn-table-delete" onclick="deleteProductHandler(${p.id})" title="Kilerden Sil">🗑️</button>
           </div>
         </td>
@@ -748,11 +749,15 @@ function renderPantryTable(products) {
 function populateCategorySelects() {
   const filterCat = document.getElementById("filterCategory");
   const modalCat = document.getElementById("newProdCategory");
+  const editCat = document.getElementById("editProdCategory");
   if (!filterCat || !modalCat) return;
 
   const options = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
   filterCat.innerHTML = `<option value="">Tüm Kategoriler</option>` + options;
   modalCat.innerHTML = `<option value="">Kategori Seçin</option>` + options;
+  if (editCat) {
+    editCat.innerHTML = `<option value="">Kategori Seçin</option>` + options;
+  }
 }
 
 async function handleAddProductSubmit(e) {
@@ -783,6 +788,68 @@ async function handleAddProductSubmit(e) {
     showToast(`${name} kilerinize başarıyla eklendi!`);
     closeModal("addProductModal");
     e.target.reset();
+    loadPantry();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+function openEditProductModal(productId) {
+  const prod = state.products.find(p => p.id === productId);
+  if (!prod) return;
+
+  populateCategorySelects();
+
+  document.getElementById("editProdId").value = prod.id;
+  document.getElementById("editProdName").value = prod.name;
+  document.getElementById("editProdQuantity").value = prod.quantity;
+  document.getElementById("editProdUnit").value = prod.unit;
+  document.getElementById("editProdCategory").value = prod.category_id || (prod.category ? prod.category.id : "");
+  document.getElementById("editProdStorage").value = prod.storage_location || "fridge";
+
+  const dateTypeSelect = document.getElementById("editProdDateType");
+  const expiryInput = document.getElementById("editProdExpiry");
+
+  dateTypeSelect.value = prod.date_type || "STT";
+  expiryInput.value = prod.expiry_date || "";
+  expiryInput.required = (dateTypeSelect.value !== "NONE");
+
+  openModal("editProductModal");
+}
+
+async function handleEditProductSubmit(e) {
+  e.preventDefault();
+  const id = parseInt(document.getElementById("editProdId").value);
+  const name = document.getElementById("editProdName").value.trim();
+  const category_id = parseInt(document.getElementById("editProdCategory").value);
+  const quantity = parseFloat(document.getElementById("editProdQuantity").value);
+  const unit = document.getElementById("editProdUnit").value;
+  const storage_location = document.getElementById("editProdStorage").value;
+  const date_type = document.getElementById("editProdDateType").value;
+  const expiry_date = document.getElementById("editProdExpiry").value || null;
+
+  if (!id || !name || isNaN(category_id) || isNaN(quantity) || quantity <= 0) {
+    showToast("Lütfen tüm zorunlu alanları eksiksiz doldurun.", "error");
+    return;
+  }
+
+  if (date_type !== "NONE" && !expiry_date) {
+    showToast(`${date_type} seçildiğinde son tarih girilmesi zorunludur.`, "error");
+    return;
+  }
+
+  try {
+    await api.updateProduct(id, {
+      category_id,
+      name,
+      quantity,
+      unit,
+      storage_location,
+      date_type,
+      expiry_date,
+    });
+    showToast(`${name} başarıyla güncellendi!`);
+    closeModal("editProductModal");
     loadPantry();
   } catch (err) {
     showToast(err.message, "error");

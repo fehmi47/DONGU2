@@ -65,6 +65,7 @@ def test_tool_schemas_format():
     assert "search_recipes" in schema_map
     assert "get_consumption_stats" in schema_map
     assert "get_recycling_guide" in schema_map
+    assert "get_vacation_rescue_plan" in schema_map
 
     for name, func_info in schema_map.items():
         assert "description" in func_info
@@ -458,3 +459,169 @@ def test_chat_request_without_history_backward_compatible(client):
         assert len(sent_messages) == 2
         assert sent_messages[0]["role"] == "system"
         assert sent_messages[1] == {"role": "user", "content": "Tarihsiz sade soru"}
+
+
+# ==============================================================================
+# 11. TATİL ÖNCESİ KURTARMA MODU (VACATION RESCUE PLAN) TESTLERİ
+# ==============================================================================
+
+def test_vacation_rescue_plan_four_groups_and_actions(db_session):
+    """
+    Sabit bir reference_date ile:
+    - 4 grubun doğru ayrıldığını ('tatilden_once_bitmeli', 'tatilde_bozulacak', 'guvende', 'tarihsiz')
+    - STT'si geçmiş ürünün 4 gruptan hiçbirine girmediğini ve 'tarihi_gecmis' listesinde olduğunu
+    - Dondurulabilir kategorideki ürünün eyleminin 'Dondur' olduğunu
+    - Diğer kategorideki ürünün eyleminin 'Gitmeden tüket veya paylaş' olduğunu
+    doğrular.
+    """
+    from app.agents.tools.vacation import get_vacation_rescue_plan
+
+    ref_date = date(2026, 7, 1)      # Referans tarih: 1 Temmuz 2026
+    start_date = "2026-07-10"        # Tatil başlangıç: 10 Temmuz 2026
+    end_date = "2026-07-20"          # Tatil bitiş: 20 Temmuz 2026
+
+    # Test kullanıcısı oluştur (her test çalıştırmasında benzersiz olmalı)
+    import uuid
+    u_key = uuid.uuid4().hex[:8]
+    test_user = User(username=f"vac_u_{u_key}", email=f"vac_{u_key}@dongu.org", password_hash="hash")
+    db_session.add(test_user)
+    db_session.commit()
+    db_session.refresh(test_user)
+    u_id = test_user.id
+
+    # Kategoriler
+    # 1. Tahıl ve Unlu Mamuller (Dondurulabilir)
+    cat_tahil = db_session.query(Category).filter(Category.name.ilike("%Unlu%")).first()
+    # 2. Sebzeler (Dondurulamaz varsayılan)
+    cat_sebze = db_session.query(Category).filter(Category.name.ilike("%Sebze%")).first()
+
+    # 1. Ürün: Tatilden önce bitmeli (SKT: 5 Temmuz, tatilden önce doluyor)
+    p1 = Product(
+        user_id=u_id, category_id=cat_sebze.id if cat_sebze else 1,
+        name="Taze Çilek", quantity=500, unit="gram",
+        date_type="STT", expiry_date=date(2026, 7, 5), status="active"
+    )
+    # 2. Ürün: Tatilde bozulacak ve dondurulabilir (SKT: 15 Temmuz, ekmek/unlu mamul) -> "Dondur"
+    p2 = Product(
+        user_id=u_id, category_id=cat_tahil.id if cat_tahil else 5,
+        name="Tam Buğday Ekmeği", quantity=1, unit="adet",
+        date_type="STT", expiry_date=date(2026, 7, 15), status="active"
+    )
+    # 3. Ürün: Tatilde bozulacak ve dondurulamaz (SKT: 14 Temmuz, sebze) -> "Gitmeden tüket veya paylaş"
+    p3 = Product(
+        user_id=u_id, category_id=cat_sebze.id if cat_sebze else 1,
+        name="Kıvırcık Marul", quantity=2, unit="adet",
+        date_type="STT", expiry_date=date(2026, 7, 14), status="active"
+    )
+    # 4. Ürün: Güvende (SKT: 25 Temmuz, dönüşten sonra doluyor) -> Sadece sayı
+    p4 = Product(
+        user_id=u_id, category_id=cat_sebze.id if cat_sebze else 1,
+        name="Kuru Soğan", quantity=2, unit="kg",
+        date_type="STT", expiry_date=date(2026, 7, 25), status="active"
+    )
+    # 5. Ürün: Tarihsiz ürün -> "Gitmeden kontrol et"
+    p5 = Product(
+        user_id=u_id, category_id=cat_sebze.id if cat_sebze else 1,
+        name="Kaya Tuzu", quantity=1, unit="paket",
+        date_type="NONE", expiry_date=None, status="active"
+    )
+    # 6. Ürün: STT'si referans tarihten önce dolmuş (SKT: 25 Haziran 2026) -> tarihi_gecmis
+    p6 = Product(
+        user_id=u_id, category_id=cat_sebze.id if cat_sebze else 1,
+        name="Bozuk Tavuk", quantity=1, unit="paket",
+        date_type="STT", expiry_date=date(2026, 6, 25), status="active"
+    )
+
+    db_session.add_all([p1, p2, p3, p4, p5, p6])
+    db_session.commit()
+
+    plan = get_vacation_rescue_plan(
+        db=db_session,
+        user_id=u_id,
+        start_date=start_date,
+        end_date=end_date,
+        reference_date=ref_date,
+    )
+
+    assert "hata" not in plan
+    assert plan["tatil_gun_sayisi"] == 10
+
+    # 1. Tatilden önce bitmeli
+    once_isimler = [p["ad"] for p in plan["tatilden_once_bitmeli"]]
+    assert "Taze Çilek" in once_isimler
+    cilek = next(p for p in plan["tatilden_once_bitmeli"] if p["ad"] == "Taze Çilek")
+    assert cilek["eylem"] == "Gitmeden tüket"
+
+    # 2. Tatilde bozulacak ve eylemleri
+    tatilde_isimler = [p["ad"] for p in plan["tatilde_bozulacak"]]
+    assert "Tam Buğday Ekmeği" in tatilde_isimler
+    assert "Kıvırcık Marul" in tatilde_isimler
+
+    ekmek = next(p for p in plan["tatilde_bozulacak"] if p["ad"] == "Tam Buğday Ekmeği")
+    assert ekmek["eylem"] == "Dondur"
+
+    marul = next(p for p in plan["tatilde_bozulacak"] if p["ad"] == "Kıvırcık Marul")
+    assert marul["eylem"] == "Gitmeden tüket veya paylaş"
+
+    # 3. Güvende olanlar (sadece sayı dönmeli)
+    assert plan["guvende"] >= 1
+    assert isinstance(plan["guvende"], int)
+
+    # 4. Tarihsiz olanlar
+    tarihsiz_isimler = [p["ad"] for p in plan["tarihsiz"]]
+    assert "Kaya Tuzu" in tarihsiz_isimler
+    tuz = next(p for p in plan["tarihsiz"] if p["ad"] == "Kaya Tuzu")
+    assert tuz["eylem"] == "Gitmeden kontrol et"
+
+    # 5. STT geçmiş ürün 4 grubun hiçbirinde OLMAMALI, tarihi_gecmis'te olmalı
+    assert "Bozuk Tavuk" not in once_isimler
+    assert "Bozuk Tavuk" not in tatilde_isimler
+    assert "Bozuk Tavuk" not in tarihsiz_isimler
+
+    gecmis_isimler = [p["ad"] for p in plan["tarihi_gecmis"]]
+    assert "Bozuk Tavuk" in gecmis_isimler
+
+    # Özet kontrolü
+    assert plan["ozet"]["tatilden_once_bitmeli"] == len(plan["tatilden_once_bitmeli"])
+    assert plan["ozet"]["tatilde_bozulacak"] == len(plan["tatilde_bozulacak"])
+    assert plan["ozet"]["guvende"] == plan["guvende"]
+    assert plan["ozet"]["tarihsiz"] == len(plan["tarihsiz"])
+    assert plan["ozet"]["tarihi_gecmis"] == len(plan["tarihi_gecmis"])
+    assert "search_recipes ile tarif önerilebilir" in plan["sonraki_adim"]
+
+
+def test_vacation_rescue_plan_validation_errors(db_session):
+    """
+    Doğrulama kontrollerinin istisna fırlatmadan uygun Türkçe hata mesajı döndürdüğünü doğrular:
+    - Geçersiz tarih formatı
+    - end_date <= start_date
+    - start_date bugünden önce
+    - Tatil süresi > 60 gün
+    """
+    from app.agents.tools.vacation import get_vacation_rescue_plan
+
+    ref_date = date(2026, 7, 1)
+
+    # 1. Geçersiz format
+    res_fmt = get_vacation_rescue_plan(db_session, user_id=1, start_date="gecersiz", end_date="2026-07-10", reference_date=ref_date)
+    assert "hata" in res_fmt
+    assert "formatı geçersiz" in res_fmt["hata"]
+
+    # 2. end_date <= start_date
+    res_order = get_vacation_rescue_plan(db_session, user_id=1, start_date="2026-07-15", end_date="2026-07-10", reference_date=ref_date)
+    assert "hata" in res_order
+    assert "sonra olmalıdır" in res_order["hata"]
+
+    res_same = get_vacation_rescue_plan(db_session, user_id=1, start_date="2026-07-15", end_date="2026-07-15", reference_date=ref_date)
+    assert "hata" in res_same
+    assert "sonra olmalıdır" in res_same["hata"]
+
+    # 3. Geçmiş tarih (start_date < bugun)
+    res_past = get_vacation_rescue_plan(db_session, user_id=1, start_date="2026-06-20", end_date="2026-07-05", reference_date=ref_date)
+    assert "hata" in res_past
+    assert "önceki bir tarih olamaz" in res_past["hata"]
+
+    # 4. 60 günden uzun
+    res_long = get_vacation_rescue_plan(db_session, user_id=1, start_date="2026-07-10", end_date="2026-09-20", reference_date=ref_date)
+    assert "hata" in res_long
+    assert "60 günden uzun" in res_long["hata"]

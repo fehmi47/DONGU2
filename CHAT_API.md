@@ -74,6 +74,7 @@ Asistan yanıt verirken arka planda hangi araçları kullandıysa yanıtın `too
 | `search_recipes` | **Akıllı Tarif** | 🍳 / 📖 | Yeşil / Başarı (Mutfak) |
 | `get_consumption_stats` | **Etki Analizi** | 📊 / 🌱 | Mavi / Bilgi (Tasarruf) |
 | `get_recycling_guide` | **Sıfır Atık Rehberi** | ♻️ / 🗑️ | Zümrüt / Ekoloji (Geri Dönüşüm) |
+| `get_vacation_rescue_plan` | **Kurtarma Modu** | 🧳 | Mor / Seyahat (Tatil Öncesi) |
 
 > **Not:** `search_recipes` aracı belirli bir malzeme sorgulandığında, o malzemenin kullanıcının mutfağında olup olmadığını `kullanicida_var: true/false` olarak döner. Kullanıcıda olmayan malzemeler için asistan mutfakta olmadığını belirtip genel katalog tariflerini sunar.
 

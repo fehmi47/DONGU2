@@ -8,6 +8,7 @@ ve elde edilen verilere dayanarak samimi, güvenilir bir yanıt üretir.
 
 import json
 import logging
+from datetime import date
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 import openai
@@ -46,6 +47,7 @@ Bunların dışındaki her istekte kibarca bu konularda yardımcı olabileceğin
 # ARAÇ STRATEJİSİ
 - "Bugün ne tüketmeliyim" gibi sorular: get_priority_products. Yalnızca aciliyeti yüksek ürünleri öner.
 - Belirli bir ürünle ne yapılacağı sorulursa: önce get_priority_products ile ürünün durumunu kontrol et, sonra search_recipes ile tarif ara.
+- Tatil, seyahat veya evde uzun süre olmama soruları: get_vacation_rescue_plan. Ürünleri gruplarına göre özetle, eylemleri araçtan AYNEN aktar. Ardından tüketilecek ürünler için tarif önermeyi teklif et.
 - Kullanıcı açıkça yeni bir fikir isterse veya veritabanında uygun tarif yoksa kısa bir tarif fikri önerebilirsin. Bu durumda:
   * Önce get_priority_products ile mutfakta ne olduğunu kontrol et (henüz çağırmadıysan),
   * Başına "💡 Asistan önerisi:" yaz,
@@ -100,9 +102,20 @@ def run_agent(
     schemas = tool_schemas()
     tools_used: List[str] = []
 
+    # Bugünün tarihini ve Türkçe gün adını dinamik olarak system prompt'a ekle.
+    # LLM bugünün tarihini bilmediği için 'yarın', 'haftaya cuma' gibi göreli tarihleri
+    # bu bilgiye göre doğru YYYY-AA-GG formatına dönüştürebilir.
+    GUN_ADLARI = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+    bugun = date.today()
+    gun_adi = GUN_ADLARI[bugun.weekday()]
+    tarih_enjeksiyonu = (
+        f"\n\nBugünün tarihi: {bugun.strftime('%Y-%m-%d')} ({gun_adi}). "
+        "Göreli tarihleri ('yarın', 'haftaya cuma', '1 hafta') bu tarihe göre YYYY-AA-GG formatına çevir."
+    )
+
     # 1. System Prompt (Asistanın kimliği ve sistem kuralları)
     messages: List[Dict[str, Any]] = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": SYSTEM_PROMPT + tarih_enjeksiyonu},
     ]
 
     # 2. Sohbet Geçmişi (Frontend tarafından tutulan son en fazla 10 mesaj)

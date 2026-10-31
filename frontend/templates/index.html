@@ -1083,6 +1083,86 @@
     </div>
   </div>
 
+  <!-- 1.1 ÜRÜN BİLGİLERİNİ GÜNCELLE MODALI -->
+  <div class="modal-overlay" id="editProductModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>✏️ Ürün Bilgilerini Güncelle</h3>
+        <button class="modal-close" onclick="closeModal('editProductModal')">&times;</button>
+      </div>
+      <form id="editProductForm" onsubmit="handleEditProductSubmit(event); return false;">
+        <input type="hidden" id="editProdId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Ürün Adı *</label>
+            <input type="text" id="editProdName" class="form-control" placeholder="Örn: Salkım Domates" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Miktar *</label>
+              <input type="number" id="editProdQuantity" class="form-control" step="0.01" min="0.01" placeholder="1.0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Birim *</label>
+              <select id="editProdUnit" class="form-control" required>
+                <option value="adet">adet</option>
+                <option value="kg">kg</option>
+                <option value="gram">gram</option>
+                <option value="litre">litre</option>
+                <option value="ml">ml</option>
+                <option value="paket">paket</option>
+                <option value="demet">demet</option>
+                <option value="kaşık">kaşık</option>
+                <option value="porsiyon">porsiyon</option>
+                <option value="dilim">dilim</option>
+                <option value="kutu">kutu</option>
+                <option value="bardak">bardak</option>
+                <option value="kavanoz">kavanoz</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kategori *</label>
+              <select id="editProdCategory" class="form-control" required>
+                <!-- Dinamik Kategoriler -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Saklama Yeri *</label>
+              <select id="editProdStorage" class="form-control" required>
+                <option value="fridge">Buzdolabı</option>
+                <option value="freezer">Dondurucu</option>
+                <option value="pantry">Kiler</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tarih Türü *</label>
+              <select id="editProdDateType" class="form-control" onchange="document.getElementById('editProdExpiry').required = (this.value !== 'NONE')">
+                <option value="STT">STT (Son Tüketim Tarihi)</option>
+                <option value="TETT">TETT (Tavsiye Edilen Tarih)</option>
+                <option value="NONE">Tarihsiz (NONE)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Son Tarih</label>
+              <input type="date" id="editProdExpiry" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-stitch-secondary" onclick="closeModal('editProductModal')">İptal</button>
+          <button type="submit" class="btn-stitch-primary">Değişiklikleri Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 2. TÜKETİM KAYDI MODALI -->
   <div class="modal-overlay" id="consumeModal">
     <div class="modal-box">
