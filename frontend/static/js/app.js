@@ -749,8 +749,12 @@ function populateCategorySelects() {
   }
 }
 
+let isAddingProduct = false;
+
 async function handleAddProductSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
+  if (isAddingProduct) return;
+
   const name = document.getElementById("newProdName").value.trim();
   const category_id = parseInt(document.getElementById("newProdCategory").value);
   const quantity = parseFloat(document.getElementById("newProdQuantity").value);
@@ -764,7 +768,15 @@ async function handleAddProductSubmit(e) {
     return;
   }
 
+  const submitBtn = document.querySelector("#addProductForm button[type=\'submit\']");
+
   try {
+    isAddingProduct = true;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Kaydediliyor...";
+    }
+
     await api.addProduct({
       category_id,
       name,
@@ -776,10 +788,18 @@ async function handleAddProductSubmit(e) {
     });
     showToast(`${name} kilerinize başarıyla eklendi!`);
     closeModal("addProductModal");
-    e.target.reset();
-    loadPantry();
+    if (e && e.target && typeof e.target.reset === "function") {
+      e.target.reset();
+    }
+    await loadPantry();
   } catch (err) {
     showToast(err.message, "error");
+  } finally {
+    isAddingProduct = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Kaydet & Ekle";
+    }
   }
 }
 
@@ -1064,11 +1084,18 @@ function renderRecipesCards(recipes) {
     // Eksik veya hazır malzeme detayı
     let subDetailHtml = "";
     if (r.can_prepare) {
-      subDetailHtml = `<span class="sub-ready">Yumurta &amp; Ispanak Hazır</span>`;
+      const readyNames = (r.matched_ingredients || []).slice(0, 2).map(m => m.ingredient_name).join(", ");
+      subDetailHtml = `<span class="sub-ready">✓ ${readyNames ? readyNames + ' Hazır' : 'Hazır'}</span>`;
     } else {
-      const missingName = (r.missing_ingredients && r.missing_ingredients.length > 0) ?
-        r.missing_ingredients[0].ingredient_name : "Malzeme";
-      subDetailHtml = `<span class="sub-missing">Eksik: ${missingName}</span>`;
+      let missingText = "";
+      if (r.missing_ingredients && r.missing_ingredients.length > 0) {
+        missingText = r.missing_ingredients.slice(0, 2).map(m => m.ingredient_name).join(", ");
+        subDetailHtml = `<span class="sub-missing">Eksik: ${missingText}</span>`;
+      } else {
+        const insufficient = (r.matched_ingredients || []).find(m => !m.is_sufficient);
+        missingText = insufficient ? `${insufficient.ingredient_name} (Miktar yetersiz)` : "Miktar yetersiz";
+        subDetailHtml = `<span class="sub-missing" style="color: #d97706;">⚠️ ${missingText}</span>`;
+      }
     }
 
     return `
@@ -1138,12 +1165,21 @@ function openRecipeDetailModal(recipeId) {
   ingList.innerHTML = recipe.ingredients.map(ing => {
     const matched = recipe.matched_ingredients.find(m => m.ingredient_name.toLowerCase() === ing.ingredient_name.toLowerCase());
     if (matched) {
-      return `
-        <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.85rem;">
-          <span>✅ <strong>${ing.ingredient_name}</strong>: ${ing.quantity} ${ing.unit}</span>
-          <span style="color: #166534; font-weight: 600;">Kilerde mevcut (${matched.available_quantity} ${matched.available_unit})</span>
-        </li>
-      `;
+      if (matched.is_sufficient) {
+        return `
+          <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span>✅ <strong>${ing.ingredient_name}</strong>: ${ing.quantity} ${ing.unit}</span>
+            <span style="color: #166534; font-weight: 600;">Kilerde mevcut (${matched.available_quantity} ${matched.available_unit})</span>
+          </li>
+        `;
+      } else {
+        return `
+          <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span>⚠️ <strong>${ing.ingredient_name}</strong>: ${ing.quantity} ${ing.unit}</span>
+            <span style="color: #d97706; font-weight: 600;">Yetersiz miktar (Kilerde: ${matched.available_quantity} ${matched.available_unit})</span>
+          </li>
+        `;
+      }
     } else {
       return `
         <li style="padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 0.85rem;">
@@ -1349,12 +1385,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Form submit listeners
-  const addProdForm = document.getElementById("addProductForm");
-  if (addProdForm) addProdForm.addEventListener("submit", handleAddProductSubmit);
-
-  const consumeForm = document.getElementById("consumeProductForm");
-  if (consumeForm) consumeForm.addEventListener("submit", handleConsumeSubmit);
+  // Form submit listeners HTML tarafında inline onsubmit ile yönetilmektedir
+  // (Çift ekleme ve mükerrer istekleri engellemek için mükerrer addEventListener kaldırıldı)
 
   // Modal dışı tıklama
   document.querySelectorAll(".modal-overlay").forEach(modal => {

@@ -336,13 +336,115 @@ SEED_RECIPES: List[Dict[str, Any]] = [
             {"ingredient_name": "Sarımsak", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": True},
             {"ingredient_name": "Zeytinyağı", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": True},
         ]
+    },
+    {
+        "name": "Nohutlu Tavuklu Pilav",
+        "description": "Haşlanmış tavuk göğsü ve nohutla zenginleştirilmiş, tane tane dökülen geleneksel bir ana yemek.",
+        "instructions": "1. Tavuk göğsünü haşlayıp didikleyin, suyunu kenara ayırın.\n2. Tereyağında yıkanmış pirinç veya bulguru kavurun.\n3. Haşlanmış nohut, didiklenmiş tavuk eti ve sıcak tavuk suyunu ekleyin.\n4. Kısık ateşte suyunu çekene kadar pişirip 15 dakika demlendirin.",
+        "preparation_time": 10,
+        "cooking_time": 25,
+        "servings": 4,
+        "difficulty": "Orta",
+        "image_url": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600",
+        "ingredients": [
+            {"ingredient_name": "Tavuk Göğsü", "quantity": Decimal("300.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Nohut", "quantity": Decimal("200.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Bulgur", "quantity": Decimal("250.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Tereyağı", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": True},
+            {"ingredient_name": "Tuz", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": True},
+        ]
+    },
+    {
+        "name": "Kıymalı Bezelye Yemeği",
+        "description": "Dondurucudaki bezelyeleri ve sebzeleri değerlendiren hafif, leziz bir tencere yemeği.",
+        "instructions": "1. Yemeklik doğranmış soğanları yağda kavurun.\n2. Varsa kıymayı veya tavuk parçasını ekleyip rengi dönene kadar soteleyin.\n3. Salça, küp doğranmış havuç ve dondurulmuş bezelyeyi ekleyin.\n4. Sıcak su ve tuz ilave edip sebzeler yumuşayana dek kısık ateşte pişirin.",
+        "preparation_time": 10,
+        "cooking_time": 25,
+        "servings": 4,
+        "difficulty": "Kolay",
+        "image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600",
+        "ingredients": [
+            {"ingredient_name": "Bezelye", "quantity": Decimal("300.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Havuç", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": False},
+            {"ingredient_name": "Soğan", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": False},
+            {"ingredient_name": "Salça", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": False},
+            {"ingredient_name": "Zeytinyağı", "quantity": Decimal("2.00"), "unit": "kaşık", "is_optional": True},
+        ]
+    },
+    {
+        "name": "Fırında Kaşarlı Bayat Ekmek Dilimleri",
+        "description": "Evdeki bayat ekmekleri, kaşar peyniri ve domatesle çıtır çıtır bir kahvaltı ziyafetine dönüştürün.",
+        "instructions": "1. Bayat ekmekleri dilimleyip fırın tepsisine dizin.\n2. Bir kapta yumurta, rendelenmiş kaşar, minik doğranmış domates ve kekiği karıştırın.\n3. Harcı ekmeklerin üzerine yayın.\n4. 200 derece fırında peynirler eriyip kızarana kadar 8-10 dakika pişirin.",
+        "preparation_time": 5,
+        "cooking_time": 10,
+        "servings": 3,
+        "difficulty": "Kolay",
+        "image_url": "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=600",
+        "ingredients": [
+            {"ingredient_name": "Ekmek", "quantity": Decimal("4.00"), "unit": "adet", "is_optional": False},
+            {"ingredient_name": "Kaşar Peyniri", "quantity": Decimal("100.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Yumurta", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": False},
+            {"ingredient_name": "Domates", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": True},
+            {"ingredient_name": "Zeytinyağı", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": True},
+        ]
+    },
+    {
+        "name": "Yoğurtlu Havuç Tarator",
+        "description": "Dolaptaki havuç ve yoğurdu cevizle buluşturan ferahlatıcı ve pratik bir meze.",
+        "instructions": "1. Havuçları rendeleyip zeytinyağında yumuşayana kadar 5-6 dakika soteleyin ve soğumaya bırakın.\n2. Bir kasede süzme yoğurt, ezilmiş sarımsak ve tuzu çırpın.\n3. Havuçları yoğurda ekleyip karıştırın, üzerine iri kıyılmış ceviz içi serpip servis yapın.",
+        "preparation_time": 10,
+        "cooking_time": 6,
+        "servings": 4,
+        "difficulty": "Kolay",
+        "image_url": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600",
+        "ingredients": [
+            {"ingredient_name": "Havuç", "quantity": Decimal("3.00"), "unit": "adet", "is_optional": False},
+            {"ingredient_name": "Yoğurt", "quantity": Decimal("300.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Zeytinyağı", "quantity": Decimal("2.00"), "unit": "kaşık", "is_optional": False},
+            {"ingredient_name": "Ceviz İçi", "quantity": Decimal("50.00"), "unit": "gram", "is_optional": True},
+            {"ingredient_name": "Sarımsak", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": True},
+        ]
+    },
+    {
+        "name": "Elmalı Tarçınlı Yulaf Kasesi",
+        "description": "Kalan elmaları ve yulafı değerlendiren, sindirimi kolay ve besleyici hafif bir tatlı/kahvaltı.",
+        "instructions": "1. Elmaları küp küp doğrayıp bir tavada azıcık su ve tarçınla yumuşayana kadar soteleyin.\n2. Yulafı süt veya su ile ocakta lapa haline gelene kadar pişirin.\n3. Lapayı kaseye alın, üzerine sotelenmiş elma dilimlerini ve cevizleri yerleştirip servis edin.",
+        "preparation_time": 5,
+        "cooking_time": 8,
+        "servings": 1,
+        "difficulty": "Kolay",
+        "image_url": "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=600",
+        "ingredients": [
+            {"ingredient_name": "Elma", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": False},
+            {"ingredient_name": "Süt", "quantity": Decimal("200.00"), "unit": "ml", "is_optional": False},
+            {"ingredient_name": "Ceviz İçi", "quantity": Decimal("30.00"), "unit": "gram", "is_optional": True},
+            {"ingredient_name": "Tarçın", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": True},
+        ]
+    },
+    {
+        "name": "Ezogelin Çorbası",
+        "description": "Kırmızı mercimek, bulgur ve pirincin nane ve salçayla uyumundan doğan doyurucu sıcacık çorba.",
+        "instructions": "1. Tencereye yıkanmış kırmızı mercimek, bulgur, pirinç ve sıcak suyu alıp yumuşayana kadar kaynatın.\n2. Ayrı bir tavada tereyağında rendelenmiş soğan ve sarımsağı kavurun, salça ve naneyi ekleyip kokusu çıkınca çorbaya ilave edin.\n3. 10 dakika daha kısık ateşte kaynatıp sıcak servis yapın.",
+        "preparation_time": 10,
+        "cooking_time": 25,
+        "servings": 5,
+        "difficulty": "Kolay",
+        "image_url": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600",
+        "ingredients": [
+            {"ingredient_name": "Kırmızı Mercimek", "quantity": Decimal("150.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Bulgur", "quantity": Decimal("50.00"), "unit": "gram", "is_optional": False},
+            {"ingredient_name": "Soğan", "quantity": Decimal("1.00"), "unit": "adet", "is_optional": False},
+            {"ingredient_name": "Salça", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": False},
+            {"ingredient_name": "Tereyağı", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": True},
+            {"ingredient_name": "Nane", "quantity": Decimal("1.00"), "unit": "kaşık", "is_optional": True},
+        ]
     }
 ]
 
 
 def seed_recipes(db: Session) -> List[Recipe]:
     """
-    Doğrulanmış 20 temel yemek tarifini ve malzemelerini veritabanına ekler.
+    Doğrulanmış yemek tariflerini ve malzemelerini veritabanına ekler.
     
     İdempotent Mantık:
     - Veritabanında kayıtlı mevcut tarif isimlerini çeker.

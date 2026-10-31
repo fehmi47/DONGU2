@@ -43,38 +43,109 @@ PRIORITY_BONUS: Dict[str, float] = {
 }
 
 
+# Sıfatlar, niteleyiciler ve eşleşmede tek başına esas alınmaması gereken kelimeler
+FOOD_MODIFIERS = {
+    "taze", "kuru", "kur", "organik", "doğal", "dogal", "yerli", "çiftlik", "ciftlik", "köy", "koy",
+    "tatlı", "tatli", "tatl", "acı", "aci", "ekşi", "eksi", "tuzlu", "acılı", "acili", "toz", "tane",
+    "süzme", "suzme", "yarım", "yarim", "tam", "yağlı", "yagli", "yağsız", "yagsiz", "az",
+    "beyaz", "kırmızı", "kirmizi", "kırmız", "kirmiz", "yeşil", "yesil", "sarı", "sari", "siyah",
+    "iri", "ince", "dilim", "dilimli", "kıyılmış", "kiyilmis", "rendelenmiş", "rendelenmis",
+    "haşlanmış", "haslanmis", "fırın", "firin", "fırınlanmış", "firinlanmis", "bayat",
+    "salkım", "salkim", "çeri", "ceri", "tarla", "çengelköy", "cengelkoy", "amasya", "koçbaşı", "kocbasi",
+    "pilavlık", "pilavlik", "köftelik", "koftelik", "çorbalık", "corbalik",
+    "burgu", "fiyonk", "spagetti", "sızma", "sizma", "riviera", "çiğ", "cig", "kavrulmuş", "kavrulmus",
+    "gezen"
+}
+
+
 def normalize_turkish_text(text: str) -> str:
     """
-    Türkçe karakterleri güvenli şekilde küçük harfe dönüştürür
+    Türkçe karakterleri güvenli şekilde küçük harfe dönüştürür (İ->i, I->ı)
     ve noktalama işaretlerini temizler.
     """
-    tr_map = str.maketrans("İIŞĞÜÖÇ", "iişğüöç")
+    tr_map = str.maketrans("İIŞĞÜÖÇ", "iışğüöç")
     cleaned = text.translate(tr_map).lower()
     return "".join(c for c in cleaned if c.isalnum() or c.isspace()).strip()
+
+
+def stem_food_word(w: str) -> str:
+    """
+    Türkçe gıda isimlerindeki tamlanan ve iyelik eklerini (-i, -ı, -u, -ü, -si, -sı vb.)
+    ve ünsüz yumuşamalarını (ğ->k, c->ç, d->t, b->p) güvenle köke indirger.
+    """
+    if w in FOOD_MODIFIERS:
+        return w
+
+    KNOWN_ROOTS = {
+        "kayısı", "kayisi", "biber", "fasulye", "domates", "patates", "soğan", "sogan",
+        "havuç", "havuc", "pirinç", "pirinc", "mercimek", "nohut", "bulgur", "makarna",
+        "yoğurt", "yogurt", "peynir", "tavuk", "yumurta", "ekmek", "balık", "balik",
+        "zeytinyağı", "zeytinyagi", "tereyağı", "tereyagi", "salça", "salca", "nane", "tuz",
+        "elma", "armut", "portakal", "limon", "kabak", "patlıcan", "patlican", "ıspanak", "ispanak"
+    }
+    if w in KNOWN_ROOTS:
+        return w
+
+    if w.endswith(("si", "sı", "su", "sü")) and len(w) > 4:
+        return w[:-2]
+    elif w.endswith(("i", "ı", "u", "ü")) and len(w) > 3:
+        stem = w[:-1]
+        if stem.endswith(("yağ", "yag")):
+            return stem
+        elif stem.endswith(("ğ", "g")):
+            return stem[:-1] + "k"
+        elif stem.endswith("c"):
+            return stem[:-1] + "ç"
+        elif stem.endswith("d"):
+            return stem[:-1] + "t"
+        elif stem.endswith("b"):
+            return stem[:-1] + "p"
+        return stem
+    return w
 
 
 def is_name_match(product_name: str, ingredient_name: str) -> bool:
     """
     Kilerdeki ürün adı ile tarifteki malzeme adının uyuşup uyuşmadığını kontrol eder.
+    Sıfatların (taze, kuru, organik vb.) alakasız ürünleri hatalı eşleştirmesini engeller.
+    
     Örnekler:
-    - 'Salkım Domates' <-> 'Domates' (Eşleşir)
-    - 'Kırmızı Mercimek' <-> 'Kırmızı Mercimek' (Eşleşir)
-    - 'Taze Ispanak' <-> 'Ispanak' (Eşleşir)
+    - 'Salkım Domates' <-> 'Domates' -> Eşleşir (True)
+    - 'Tam Buğday Ekmeği' <-> 'Ekmek' -> Eşleşir (True)
+    - 'Köy Yoğurdu' <-> 'Yoğurt' -> Eşleşir (True)
+    - 'Taze Kaşar Peyniri' <-> 'Taze Fasulye' -> Eşleşmez (False)
+    - 'Kuru Kayısı' <-> 'Kuru Fasulye' -> Eşleşmez (False)
     """
     p_norm = normalize_turkish_text(product_name)
     i_norm = normalize_turkish_text(ingredient_name)
 
-    # Tam eşitlik veya alt dize eşleşmesi
-    if p_norm == i_norm or i_norm in p_norm or p_norm in i_norm:
+    if p_norm == i_norm:
         return True
 
-    # Kelime kümesi kesişimi (örnek: "Sarımsaklı Yoğurt" <-> "Yoğurt")
-    p_words = set(p_norm.split())
-    i_words = set(i_norm.split())
-    common_words = p_words & i_words
+    p_words = [stem_food_word(w) for w in p_norm.split()]
+    i_words = [stem_food_word(w) for w in i_norm.split()]
 
-    # Anlamlı kelime eşleşmesi (2 harften uzun en az bir kelime ortaksa)
-    return any(len(w) >= 3 for w in common_words)
+    p_stemmed_str = " ".join(p_words)
+    i_stemmed_str = " ".join(i_words)
+
+    # 1. Tam öbek alt dize eşleşmesi
+    if i_stemmed_str in p_stemmed_str:
+        if any(w not in FOOD_MODIFIERS for w in i_words):
+            return True
+
+    if p_stemmed_str in i_stemmed_str:
+        if any(w not in FOOD_MODIFIERS for w in p_words):
+            return True
+
+    # 2. Ana gıda kelimelerinin (modifiye edici olmayan) kesişimi
+    p_core = {w for w in p_words if w not in FOOD_MODIFIERS and len(w) >= 3}
+    i_core = {w for w in i_words if w not in FOOD_MODIFIERS and len(w) >= 3}
+
+    common_core = p_core & i_core
+    if common_core:
+        return True
+
+    return False
 
 
 def check_quantity_sufficiency(
@@ -166,7 +237,7 @@ def match_user_products_with_recipes(
 
             for ep in eligible_products:
                 prod = ep["product"]
-                if is_name_match(prod.name, ing.ingredient_name):
+                if prod.id not in used_product_ids and is_name_match(prod.name, ing.ingredient_name):
                     matched_prod_info = ep
                     break
 
