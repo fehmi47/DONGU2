@@ -7,21 +7,29 @@ const API_BASE = "/api";
 
 class ApiService {
   constructor() {
-    // Aktif kullanıcı ID'si (Varsayılan: 1, localStorage ile saklanır)
-    this.userId = localStorage.getItem("dongu_user_id") || "1";
+    // Aktif kullanıcı ID'si (localStorage ile saklanır, oturum yoksa null)
+    this.userId = localStorage.getItem("dongu_user_id") || null;
   }
 
   setUserId(id) {
-    this.userId = id.toString();
-    localStorage.setItem("dongu_user_id", this.userId);
+    if (id) {
+      this.userId = id.toString();
+      localStorage.setItem("dongu_user_id", this.userId);
+    } else {
+      this.userId = null;
+      localStorage.removeItem("dongu_user_id");
+    }
   }
 
   getHeaders(customHeaders = {}) {
-    return {
+    const headers = {
       "Content-Type": "application/json",
-      "X-User-Id": this.userId,
       ...customHeaders,
     };
+    if (this.userId) {
+      headers["X-User-Id"] = this.userId;
+    }
+    return headers;
   }
 
   async request(endpoint, options = {}) {
@@ -86,7 +94,7 @@ class ApiService {
   logout() {
     localStorage.removeItem("dongu_user_id");
     localStorage.removeItem("dongu_user");
-    this.userId = "1";
+    this.userId = null;
   }
 
   // --- DASHBOARD ---

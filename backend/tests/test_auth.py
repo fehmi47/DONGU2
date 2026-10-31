@@ -112,3 +112,14 @@ def test_auth_login_wrong_password(client):
     response = client.post("/api/auth/login", json=payload)
     assert response.status_code == 401
     assert "hatalı" in response.json()["detail"]
+
+
+def test_unauthorized_without_user_id(client):
+    """X-User-Id gnderilmediinde veya geersiz olduunda 401 dner (artk varsaylan 1 atanmaz)."""
+    res_no_header = client.get("/api/auth/me")
+    assert res_no_header.status_code == 401
+    assert "Oturum" in res_no_header.json()["detail"]
+
+    res_invalid = client.get("/api/auth/me", headers={"X-User-Id": "999999"})
+    assert res_invalid.status_code == 401
+    assert "oturum" in res_invalid.json()["detail"]

@@ -1,9 +1,8 @@
 from typing import Optional
-from fastapi import Depends, Header
+from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
-from app.services.user_service import get_or_create_user
 
 
 def get_current_user(
@@ -15,12 +14,20 @@ def get_current_user(
     )
 ) -> User:
     """
-    İsteği yapan kullanıcıyı tespit eden bağımlılık fonksiyonu.
-    
-    Çalışma Mantığı:
-    - Başlıkta 'X-User-Id' gönderilmişse (örneğin 1, 2 veya 3), ilgili kullanıcıyı getirir.
-      Eğer veritabanında henüz oluşturulmamışsa otomatik olarak oluşturur (asla 404 vermez).
-    - Eğer 'X-User-Id' gönderilmemişse, varsayılan olarak ID: 1 (demo_user) kullanıcısını döner.
+    İsteği yapan kullanıcıyı X-User-Id başlığı üzerinden doğrular.
+    Başlık gönderilmemişse veya kullanıcı bulunamazsa 401 Unauthorized fırlatır.
+    Varsayılan kullanıcı ID'si (1) KULLANILMAZ; herkes kendi ID'si ile işlem yapar.
     """
-    target_id = x_user_id if x_user_id is not None else 1
-    return get_or_create_user(db, user_id=target_id)
+    if x_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Oturum açmanız gerekiyor. Lütfen giriş yapın."
+        )
+
+    user = db.query(User).filter(User.id == x_user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Geçersiz kullanıcı oturumu. Lütfen tekrar giriş yapın."
+        )
+    return user

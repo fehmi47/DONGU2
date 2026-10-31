@@ -87,6 +87,15 @@ function switchAuthTab(tab) {
   }
 }
 
+function openAuthModal(tab = "login") {
+  switchAuthTab(tab);
+  openModal("authModal");
+}
+
+function scrollToAuth(tab = "login") {
+  openAuthModal(tab);
+}
+
 function updateAuthUI() {
   const user = state.currentUser;
   const mainNavLinks = document.getElementById("mainNavLinks");
@@ -95,12 +104,10 @@ function updateAuthUI() {
   const navUserFullName = document.getElementById("navUserFullName");
   const navUsernameDisplay = document.getElementById("navUsernameDisplay");
 
-  const loggedInPane = document.getElementById("authLoggedInPane");
-  const loginPane = document.getElementById("authLoginPane");
-  const registerPane = document.getElementById("authRegisterPane");
-  const tabsContainer = document.getElementById("authTabsContainer");
-  const loggedInUserDisplay = document.getElementById("loggedInUsernameDisplay");
-  const loggedInEmailDisplay = document.getElementById("loggedInEmailDisplay");
+  const landingGuestCta = document.getElementById("landingGuestCta");
+  const landingUserCta = document.getElementById("landingUserCta");
+  const landingUserFullName = document.getElementById("landingUserFullName");
+  const heroGuestCta = document.getElementById("heroGuestCta");
 
   if (user) {
     // Oturum açık
@@ -115,23 +122,19 @@ function updateAuthUI() {
     if (navUserFullName) navUserFullName.textContent = displayName;
     if (navUsernameDisplay) navUsernameDisplay.textContent = user.username;
 
-    if (tabsContainer) tabsContainer.style.display = "none";
-    if (loginPane) loginPane.style.display = "none";
-    if (registerPane) registerPane.style.display = "none";
-    if (loggedInPane) {
-      loggedInPane.style.display = "block";
-      if (loggedInUserDisplay) loggedInUserDisplay.textContent = displayName;
-      if (loggedInEmailDisplay) loggedInEmailDisplay.textContent = user.email || `${user.username}@dongu.org`;
-    }
+    if (landingGuestCta) landingGuestCta.style.display = "none";
+    if (landingUserCta) landingUserCta.style.display = "flex";
+    if (landingUserFullName) landingUserFullName.textContent = displayName;
+    if (heroGuestCta) heroGuestCta.style.display = "none";
   } else {
     // Oturum kapalı
     if (mainNavLinks) mainNavLinks.style.display = "none";
     if (navGuestBox) navGuestBox.style.display = "flex";
     if (navUserBadge) navUserBadge.style.display = "none";
 
-    if (tabsContainer) tabsContainer.style.display = "flex";
-    if (loggedInPane) loggedInPane.style.display = "none";
-    switchAuthTab("login");
+    if (landingGuestCta) landingGuestCta.style.display = "flex";
+    if (landingUserCta) landingUserCta.style.display = "none";
+    if (heroGuestCta) heroGuestCta.style.display = "flex";
   }
 }
 
@@ -143,9 +146,11 @@ function initAuth() {
       api.setUserId(state.currentUser.id);
     } catch {
       localStorage.removeItem("dongu_user");
+      api.setUserId(null);
       state.currentUser = null;
     }
   } else {
+    api.setUserId(null);
     state.currentUser = null;
   }
   updateAuthUI();
@@ -176,7 +181,8 @@ async function handleLoginSubmit(event) {
     api.setUserId(res.user.id);
     localStorage.setItem("dongu_user", JSON.stringify(res.user));
 
-    showToast(`Giriş başarılı! Hoş geldin, ${res.user.username}`);
+    closeModal("authModal");
+    showToast(`Giriş başarılı! Hoş geldiniz, ${res.user.username}`);
     updateAuthUI();
     switchView("dashboard");
   } catch (err) {
@@ -191,12 +197,6 @@ async function handleLoginSubmit(event) {
       submitBtn.textContent = "Giriş Yap 🚀";
     }
   }
-}
-
-async function quickLogin(username) {
-  document.getElementById("loginUsername").value = username;
-  document.getElementById("loginPassword").value = "123456";
-  await handleLoginSubmit({ preventDefault: () => {} });
 }
 
 async function handleRegisterSubmit(event) {
@@ -234,7 +234,8 @@ async function handleRegisterSubmit(event) {
     api.setUserId(res.user.id);
     localStorage.setItem("dongu_user", JSON.stringify(res.user));
 
-    showToast(`Kaydınız tamamlandı! Hoş geldin, ${res.user.username}`);
+    closeModal("authModal");
+    showToast(`Kaydınız tamamlandı! Hoş geldiniz, ${res.user.username}`);
     updateAuthUI();
     switchView("dashboard");
   } catch (err) {
@@ -257,19 +258,6 @@ function handleLogout() {
   updateAuthUI();
   showToast("Oturum kapatıldı.");
   switchView("home");
-}
-
-function scrollToAuth(tab = "login") {
-  switchView("home");
-  switchAuthTab(tab);
-  const card = document.getElementById("homeAuthCard");
-  if (card) {
-    card.scrollIntoView({ behavior: "smooth", block: "center" });
-    setTimeout(() => {
-      const inp = tab === "login" ? document.getElementById("loginUsername") : document.getElementById("regUsername");
-      if (inp) inp.focus();
-    }, 350);
-  }
 }
 
 function handleBrandClick() {
@@ -316,6 +304,7 @@ function showToast(message, type = "success") {
 function switchView(viewName) {
   if (!state.currentUser && viewName !== "home") {
     showToast("Mutfak paneline erişmek için lütfen önce giriş yapın.", "error");
+    openAuthModal("login");
     viewName = "home";
   }
 
